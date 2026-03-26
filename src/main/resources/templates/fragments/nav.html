@@ -1,0 +1,418 @@
+<!-- ============================================
+     NAV.HTML - Reusable Sidebar Component
+     Include this fragment in any page using fetch()
+     ============================================ -->
+<aside class="sidebar" id="sidebar">
+  <!-- Brand Section -->
+  <a class="sb-brand" href="/api/user/dashboard">
+    <div class="sb-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M5 4h8a4 4 0 0 1 0 8H5V4Z" fill="white" fill-opacity=".9"/>
+        <path d="M5 12h9a4 4 0 0 1 0 8H5V12Z" fill="white"/>
+      </svg>
+    </div>
+    <span class="sb-name">BidPilots</span>
+    <span class="sb-badge-brand">#1 GeM</span>
+  </a>
+
+  <!-- Main Navigation -->
+  <span class="sb-sec">MAIN</span>
+  <ul class="sb-nav">
+    <li>
+      <a href="/api/user/dashboard" id="nav-dashboard" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10.707 2.293a1 1 0 0 0-1.414 0l-7 7a1 1 0 0 0 1.414 1.414L4 10.414V17a1 1 0 0 0 1 1h4v-4h2v4h4a1 1 0 0 0 1-1v-6.586l.293.293a1 1 0 0 0 1.414-1.414l-7-7Z"/>
+        </svg>
+        Dashboard
+      </a>
+    </li>
+    <li>
+      <a href="/api/user/tenders" id="nav-bids" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/>
+        </svg>
+        My Bids
+        <span class="sb-badge" id="navUnreadBadge" style="display:none">0</span>
+      </a>
+    </li>
+    <li>
+      <a href="/api/user/filters-page" id="nav-filters" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/>
+        </svg>
+        My Filters
+        <span class="sb-badge" id="navFilterCount" style="display:none">0</span>
+      </a>
+    </li>
+    <li>
+      <a href="/api/user/analytics" id="nav-analytics" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M15.5 2A1.5 1.5 0 0 0 14 3.5v13a1.5 1.5 0 0 0 3 0v-13A1.5 1.5 0 0 0 15.5 2ZM9.5 7A1.5 1.5 0 0 0 8 8.5v8a1.5 1.5 0 0 0 3 0v-8A1.5 1.5 0 0 0 9.5 7ZM3.5 12A1.5 1.5 0 0 0 2 13.5v3a1.5 1.5 0 0 0 3 0v-3A1.5 1.5 0 0 0 3.5 12Z"/>
+        </svg>
+        Analytics
+      </a>
+    </li>
+    <li>
+      <a href="/subscription/plans" id="nav-subscription" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M6.447 3.362A2.25 2.25 0 0 1 8.232 2.5h3.536a2.25 2.25 0 0 1 1.785.862l3.23 4.306a2.25 2.25 0 0 1-.193 2.985l-5.5 5.5a2.25 2.25 0 0 1-3.181 0l-5.5-5.5a2.25 2.25 0 0 1-.193-2.985l3.23-4.306Z" clip-rule="evenodd"/>
+        </svg>
+        Subscription
+      </a>
+    </li>
+  </ul>
+
+  <!-- Account Section -->
+  <span class="sb-sec">ACCOUNT</span>
+  <ul class="sb-nav">
+    <li>
+      <a href="/api/user/profile" id="nav-profile" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.125-2.095.39-.31.53-.843.41-1.412a7.001 7.001 0 0 0-13.07 0Z"/>
+        </svg>
+        Profile
+      </a>
+    </li>
+    <li>
+      <a href="/api/user/settings" id="nav-settings" class="nav-link">
+        <svg class="ni" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652Z" clip-rule="evenodd"/>
+          <path fill-rule="evenodd" d="M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/>
+        </svg>
+        Settings
+      </a>
+    </li>
+  </ul>
+
+  <!-- Footer with User Info -->
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="u-av" id="navUserAv">U</div>
+      <div>
+        <div class="u-name" id="navUserName">Loading…</div>
+        <div class="u-role" id="navUserPlan">Free Plan</div>
+      </div>
+      <button class="logout-btn" onclick="window.logout?.()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd"/>
+          <path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.083a.75.75 0 1 0-1.004-1.115l-2.5 2.5a.75.75 0 0 0 0 1.09l2.5 2.5a.75.75 0 1 0 1.004-1.115l-1.048-1.083h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- Mobile Backdrop -->
+<div class="mob-overlay" id="mobOverlay" onclick="window.closeSb?.()"></div>
+
+<style>
+/* ============================================
+   SIDEBAR STYLES - PREMIUM DESIGN
+   ============================================ */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: linear-gradient(180deg, rgba(10, 14, 26, 0.98) 0%, rgba(7, 10, 22, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(79, 142, 247, 0.15);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(79, 142, 247, 0.3); border-radius: 4px; }
+
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(79, 142, 247, 0.15);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.sb-logo {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #4f8ef7 0%, #7c5cfc 50%, #a855f7 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 12px rgba(79, 142, 247, 0.3);
+}
+
+.sb-brand:hover .sb-logo { transform: scale(1.05); }
+
+.sb-name {
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4f8ef7 0%, #7c5cfc 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.3px;
+}
+
+.sb-badge-brand {
+  margin-left: auto;
+  background: rgba(34, 201, 137, 0.15);
+  border: 1px solid rgba(34, 201, 137, 0.3);
+  color: #22c989;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.sb-sec {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #4e6080;
+  padding: 20px 20px 8px;
+}
+
+.sb-nav {
+  list-style: none;
+  padding: 4px 12px;
+  flex: 1;
+}
+
+.sb-nav li { margin-bottom: 4px; }
+
+.sb-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sb-nav a:hover {
+  background: rgba(79, 142, 247, 0.12);
+  color: #f1f5f9;
+  transform: translateX(3px);
+}
+
+.sb-nav a.active {
+  background: linear-gradient(135deg, rgba(79, 142, 247, 0.2) 0%, rgba(124, 92, 252, 0.15) 100%);
+  color: #7daaff;
+  font-weight: 600;
+  border-left: 2px solid #4f8ef7;
+}
+
+.ni {
+  width: 18px;
+  height: 18px;
+  opacity: 0.7;
+}
+
+.sb-nav a:hover .ni,
+.sb-nav a.active .ni { opacity: 1; }
+
+.sb-badge {
+  margin-left: auto;
+  background: linear-gradient(135deg, #4f8ef7 0%, #7c5cfc 50%, #a855f7 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+}
+
+.sb-footer {
+  padding: 16px 12px 20px;
+  border-top: 1px solid rgba(79, 142, 247, 0.15);
+  margin-top: auto;
+}
+
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sb-user:hover { background: rgba(255, 255, 255, 0.06); }
+
+.u-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f8ef7 0%, #7c5cfc 50%, #a855f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.u-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.u-role {
+  font-size: 10px;
+  color: #4e6080;
+}
+
+.logout-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: #4e6080;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  color: #f0526a;
+  background: rgba(240, 82, 106, 0.1);
+}
+
+.mob-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 89;
+}
+
+.mob-overlay.open { display: block; }
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-280px); width: 280px; }
+  .sidebar.open { transform: none; }
+  .mob-overlay.open { display: block; }
+}
+</style>
+
+<script>
+// Nav Functions - to be exposed globally
+window.navFunctions = {
+  setActiveLink: function(pageId) {
+    const map = {
+      dashboard: 'nav-dashboard',
+      bids: 'nav-bids',
+      filters: 'nav-filters',
+      analytics: 'nav-analytics',
+      subscription: 'nav-subscription',
+      profile: 'nav-profile',
+      settings: 'nav-settings'
+    };
+    const activeId = map[pageId];
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    if (activeId) {
+      const activeLink = document.getElementById(activeId);
+      if (activeLink) activeLink.classList.add('active');
+    }
+  },
+  
+  loadUser: async function() {
+    try {
+      const res = await fetch('/api/user/current', { credentials: 'include' });
+      if (res.status === 401) {
+        window.location.href = '/api/users/login-form';
+        return null;
+      }
+      const data = await res.json();
+      if (data?.success) {
+        const user = data.user || data;
+        const name = user.companyName || user.email || 'User';
+        const av = document.getElementById('navUserAv');
+        const nm = document.getElementById('navUserName');
+        const pl = document.getElementById('navUserPlan');
+        if (av) av.textContent = name.charAt(0).toUpperCase();
+        if (nm) nm.textContent = name;
+        if (pl && user.planName) pl.textContent = user.planName;
+        return user;
+      }
+    } catch(e) { console.error('Nav load error:', e); }
+    return null;
+  },
+  
+  loadBadges: async function() {
+    try {
+      const [unreadRes, filtersRes] = await Promise.all([
+        fetch('/api/user/matches/unviewed/count', { credentials: 'include' }),
+        fetch('/api/user/filters/my', { credentials: 'include' })
+      ]);
+      if (unreadRes.ok) {
+        const data = await unreadRes.json();
+        if (data?.success) {
+          const count = data.count || 0;
+          const badge = document.getElementById('navUnreadBadge');
+          if (badge) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = count > 0 ? '' : 'none';
+          }
+        }
+      }
+      if (filtersRes.ok) {
+        const data = await filtersRes.json();
+        if (data?.success) {
+          const count = data.filters?.length || data.total || 0;
+          const badge = document.getElementById('navFilterCount');
+          if (badge) {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? '' : 'none';
+          }
+        }
+      }
+    } catch(e) { console.error('Badge load error:', e); }
+  }
+};
+
+// Global functions for mobile and logout
+window.openSb = function() {
+  document.getElementById('sidebar')?.classList.add('open');
+  document.getElementById('mobOverlay')?.classList.add('open');
+};
+
+window.closeSb = function() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('mobOverlay')?.classList.remove('open');
+};
+
+window.logout = async function() {
+  try {
+    await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+  } catch(e) {}
+  window.location.href = '/api/users/login-form';
+};
+
+// Initialize nav when loaded
+document.addEventListener('DOMContentLoaded', () => {
+  window.navFunctions.loadUser();
+  window.navFunctions.loadBadges();
+});
+</script>

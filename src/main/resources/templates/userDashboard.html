@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidPilots — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+/* BLOCK 1 — NAV CSS */
+:root {
+  --bg: #0a0e1a;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --indigo: #4f8ef7;
+  --purple: #8b5cf6;
+  --violet: #a855f7;
+  --grad: linear-gradient(135deg,#4f8ef7 0%,#7c5cfc 50%,#a855f7 100%);
+  --text: #f1f5f9;
+  --sub: #94a3b8;
+  --sub2: #4e6080;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --radius: 14px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --success: #22c989;
+  --warning: #f5a623;
+  --danger: #f0526a;
+  --sidebar: 252px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.bg-canvas{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg-canvas::before{content:'';position:absolute;width:800px;height:800px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(79,142,247,0.12) 0%,transparent 70%);animation:pulse1 9s ease-in-out infinite alternate}
+.bg-canvas::after{content:'';position:absolute;width:600px;height:600px;bottom:0;left:-100px;background:radial-gradient(circle,rgba(124,92,252,0.08) 0%,transparent 70%);animation:pulse2 11s ease-in-out infinite alternate}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);background-size:60px 60px}
+@keyframes pulse1{to{transform:translate(50px,70px)scale(1.1)}}
+@keyframes pulse2{to{transform:translate(-40px,-60px)scale(1.15)}}
+
+/* Sidebar Styles */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar);background:rgba(7,10,22,0.98);border-right:1px solid var(--border);z-index:90;display:flex;flex-direction:column;padding-bottom:16px;transition:transform .3s;overflow-y:auto}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:16px 18px 14px;border-bottom:1px solid var(--border);text-decoration:none}
+.sb-logo{width:32px;height:32px;background:var(--grad);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sb-name{font-size:16px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-sec{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--sub2);padding:18px 18px 5px}
+.sb-nav{list-style:none;padding:3px 8px;flex:1}
+.sb-nav li{margin-bottom:1px}
+.sb-nav a{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:9px;color:var(--sub);text-decoration:none;font-size:13px;font-weight:500;transition:all .2s}
+.sb-nav a:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.sb-nav a.active{background:rgba(79,142,247,0.13);color:#7daaff;font-weight:600}
+.ni{width:17px;height:17px;opacity:.65}
+.sb-nav a:hover .ni,.sb-nav a.active .ni{opacity:1}
+.sb-badge{margin-left:auto;background:var(--grad);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px}
+.sb-footer{padding:10px 8px 0;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;transition:background .2s}
+.sb-user:hover{background:rgba(255,255,255,0.04)}
+.u-av{width:28px;height:28px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.u-name{font-size:12px;font-weight:600;color:var(--text)}
+.u-role{font-size:10px;color:var(--sub2)}
+.logout-btn{margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:var(--sub2);transition:color .2s;display:flex}
+.logout-btn:hover{color:var(--danger)}
+.mob-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;cursor:pointer;color:var(--sub)}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89}
+.mob-overlay.open{display:block}
+@media(max-width:768px){:root{--sidebar:0px}.sidebar{transform:translateX(-252px);width:252px}.sidebar.open{transform:none}.mob-btn{display:flex!important}.main{margin-left:0!important}}
+
+/* Main Layout */
+.main{margin-left:var(--sidebar);flex:1;position:relative;z-index:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:80;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;background:rgba(10,14,26,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-title{font-size:15px;font-weight:700}
+.tb-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);font-size:10px;font-weight:700;color:#a5b4fc}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:#4f8ef7;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.tb-right{display:flex;align-items:center;gap:8px}
+.ib{width:34px;height:34px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sub);transition:all .2s;text-decoration:none}
+.ib:hover{border-color:var(--border2);color:var(--text)}
+.page{padding:24px 28px 60px}
+
+/* Dashboard Specific Styles */
+.welcome-banner{
+  background:linear-gradient(135deg,rgba(79,142,247,0.12) 0%,rgba(124,92,252,0.1) 100%);
+  border:1px solid rgba(79,142,247,0.2);
+  border-radius:18px;
+  padding:28px 32px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:28px;
+  position:relative;
+  overflow:hidden;
+}
+.wb-greeting{font-size:22px;font-weight:800;margin-bottom:5px}
+.wb-sub{font-size:13px;color:var(--sub)}
+.wb-plan{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 12px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.22);border-radius:20px;font-size:11px;font-weight:700;color:#7daaff}
+.wb-right{display:flex;gap:10px}
+.wb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none}
+.wb-btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 16px rgba(79,142,247,0.3)}
+.wb-btn-ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border2)}
+.wb-btn:hover{opacity:.88;transform:translateY(-1px)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .2s;cursor:pointer;text-decoration:none;display:block}
+.stat-card:hover{border-color:rgba(79,142,247,.28);transform:translateY(-2px)}
+.sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sc-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.si-b{background:rgba(79,142,247,.16);color:#4f8ef7}
+.si-g{background:rgba(34,201,137,.14);color:#22c989}
+.si-a{background:rgba(245,166,35,.14);color:#f5a623}
+.si-p{background:rgba(124,92,252,.15);color:#a78bfa}
+.sc-trend{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.trend-up{background:rgba(34,201,137,.1);color:#22c989}
+.trend-new{background:rgba(79,142,247,.1);color:#7daaff}
+.sc-val{font-size:28px;font-weight:800;margin-bottom:3px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sc-lbl{font-size:12px;color:var(--sub);font-weight:500}
+.two-col{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-bottom:18px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-title{font-size:14px;font-weight:700}
+.panel-link{font-size:12px;color:var(--indigo);text-decoration:none;font-weight:600}
+.panel-body{padding:16px 20px}
+.bid-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.bid-row:last-child{border-bottom:none}
+.bid-dot{width:8px;height:8px;border-radius:50%}
+.dot-active{background:var(--success)}
+.dot-closing{background:var(--warning)}
+.dot-closed{background:var(--danger)}
+.bid-info{flex:1;min-width:0}
+.bid-num{font-size:10px;color:var(--sub2);font-weight:600;margin-bottom:2px}
+.bid-item{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bid-time{font-size:10px;color:var(--sub2)}
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa-btn{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text)}
+.qa-btn:hover{background:rgba(79,142,247,.07);border-color:rgba(79,142,247,.25)}
+.qa-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.qa-label{font-size:12px;font-weight:700}
+.qa-desc{font-size:10px;color:var(--sub2)}
+.match-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px}
+.match-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.match-title{font-size:14px;font-weight:700}
+.match-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#22c989}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#22c989;animation:blink 1.5s infinite}
+.match-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.ms-item{text-align:center;padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px}
+.ms-val{font-size:20px;font-weight:800;margin-bottom:3px}
+.ms-lbl{font-size:10px;color:var(--sub2)}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;animation:slideIn .3s ease}
+.toast.ok{border-color:rgba(34,201,137,.3)}
+.toast.err{border-color:rgba(240,82,106,.3)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.sk{background:linear-gradient(90deg,var(--bg3) 25%,rgba(255,255,255,.03) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}}
+@media(max-width:768px){.stats-grid{grid-template-columns:1fr 1fr}.match-stats{grid-template-columns:1fr 1fr}.page{padding:14px}.welcome-banner{flex-direction:column}.wb-right{width:100%}}
+</style>
+</head>
+<body>
+<div class="bg-canvas"><div class="bg-grid"></div></div>
+
+<!-- BLOCK 2 — SIDEBAR HTML -->
+<aside class="sidebar" id="sidebar">
+  <a class="sb-brand" href="/api/user/dashboard">
+    <div class="sb-logo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 3h6a3 3 0 0 1 0 6H4V3Z" fill="white" fill-opacity=".9"/><path d="M4 9h6.5a3.5 3.5 0 0 1 0 7H4V9Z" fill="white"/></svg></div>
+    <span class="sb-name">BidPilots</span>
+  </a>
+  <span class="sb-sec">Main</span>
+  <ul class="sb-nav">
+    <li><a href="/api/user/dashboard" id="nav-dashboard"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 0 0-1.414 0l-7 7a1 1 0 0 0 1.414 1.414L4 10.414V17a1 1 0 0 0 1 1h4v-4h2v4h4a1 1 0 0 0 1-1v-6.586l.293.293a1 1 0 0 0 1.414-1.414l-7-7Z"/></svg>Dashboard</a></li>
+    <li><a href="/api/user/tenders" id="nav-bids"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg>My Bids<span class="sb-badge" id="navUnreadBadge" style="display:none">0</span></a></li>
+    <li><a href="/api/user/filters-page" id="nav-filters"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg>My Filters<span class="sb-badge" id="navFilterCount" style="display:none">0</span></a></li>
+    <li><a href="/api/user/analytics" id="nav-analytics"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M15.5 2A1.5 1.5 0 0 0 14 3.5v13a1.5 1.5 0 0 0 3 0v-13A1.5 1.5 0 0 0 15.5 2ZM9.5 7A1.5 1.5 0 0 0 8 8.5v8a1.5 1.5 0 0 0 3 0v-8A1.5 1.5 0 0 0 9.5 7ZM3.5 12A1.5 1.5 0 0 0 2 13.5v3a1.5 1.5 0 0 0 3 0v-3A1.5 1.5 0 0 0 3.5 12Z"/></svg>Analytics</a></li>
+    <li><a href="/subscription/plans" id="nav-subscription"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.447 3.362A2.25 2.25 0 0 1 8.232 2.5h3.536a2.25 2.25 0 0 1 1.785.862l3.23 4.306a2.25 2.25 0 0 1-.193 2.985l-5.5 5.5a2.25 2.25 0 0 1-3.181 0l-5.5-5.5a2.25 2.25 0 0 1-.193-2.985l3.23-4.306Z" clip-rule="evenodd"/></svg>Subscription</a></li>
+  </ul>
+  <span class="sb-sec">Account</span>
+  <ul class="sb-nav">
+    <li><a href="/api/user/profile" id="nav-profile"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.125-2.095.39-.31.53-.843.41-1.412a7.001 7.001 0 0 0-13.07 0Z"/></svg>Profile</a></li>
+    <li><a href="/api/user/settings" id="nav-settings"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/></svg>Settings</a></li>
+  </ul>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="u-av" id="navUserAv">U</div>
+      <div><div class="u-name" id="navUserName">Loading…</div><div class="u-role" id="navUserPlan">Free Plan</div></div>
+      <button class="logout-btn" onclick="logout()" title="Logout"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.083a.75.75 0 1 0-1.004-1.115l-2.5 2.5a.75.75 0 0 0 0 1.09l2.5 2.5a.75.75 0 1 0 1.004-1.115l-1.048-1.083h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd"/></svg></button>
+    </div>
+  </div>
+</aside>
+<div class="mob-overlay" id="mobOverlay" onclick="closeSb()"></div>
+
+<main class="main">
+  <div class="topbar">
+    <div class="tb-left">
+      <button class="mob-btn" onclick="openSb()"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75ZM2 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10Zm0 5.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd"/></svg></button>
+      <span class="tb-title">Dashboard</span>
+      <span class="tb-pill"><span class="pill-dot"></span>Live</span>
+    </div>
+    <div class="tb-right">
+      <a href="/api/user/tenders" class="ib" title="My Bids"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg></a>
+      <a href="/api/user/filters-page" class="ib" title="My Filters"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg></a>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="welcome-banner">
+      <div class="wb-left">
+        <div class="wb-greeting">Welcome back, <span id="wbName">User</span> 👋</div>
+        <div class="wb-sub">Your GeM bid intelligence is running. Here's what's happening today.</div>
+        <span class="wb-plan"><svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clip-rule="evenodd"/></svg><span id="wbPlan">Free Plan</span></span>
+      </div>
+      <div class="wb-right">
+        <a href="/api/user/filters-page" class="wb-btn wb-btn-ghost"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg>Manage Filters</a>
+        <a href="/api/user/tenders" class="wb-btn wb-btn-primary"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg>View My Bids</a>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <a href="/api/user/tenders" class="stat-card"><div class="sc-top"><div class="sc-ico si-g"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg></div><span class="sc-trend trend-up">Active</span></div><div class="sc-val" id="statActiveBids">—</div><div class="sc-lbl">Active Matched Bids</div></a>
+      <a href="/api/user/tenders?tab=closing" class="stat-card"><div class="sc-top"><div class="sc-ico si-a"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd"/></svg></div><span class="sc-trend" style="background:rgba(245,166,35,.1);color:#f5a623">Urgent</span></div><div class="sc-val" id="statClosing">—</div><div class="sc-lbl">Closing in 3 Days</div></a>
+      <a href="/api/user/filters-page" class="stat-card"><div class="sc-top"><div class="sc-ico si-b"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg></div><span class="sc-trend trend-new">Saved</span></div><div class="sc-val" id="statFilters">—</div><div class="sc-lbl">Active Filters</div></a>
+      <a href="/api/user/submissions" class="stat-card"><div class="sc-top"><div class="sc-ico si-p"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.591a2.995 2.995 0 0 0-.92.598 1.07 1.07 0 0 0-.012 1.43Z"/><path fill-rule="evenodd" d="M9.75 4.25a5.75 5.75 0 1 0 0 11.5 5.75 5.75 0 0 0 0-11.5Zm1 2.096v-.192a.75.75 0 0 0-1.5 0v.126c-.88.197-1.624.73-1.998 1.492a2.556 2.556 0 0 0 .076 2.365c.34.622.947 1.034 1.62 1.215v2.68c-.459-.106-.858-.378-1.139-.746a.75.75 0 1 0-1.206.895c.577.778 1.42 1.264 2.345 1.384v.13a.75.75 0 0 0 1.5 0v-.128c.939-.185 1.707-.74 2.077-1.548a2.592 2.592 0 0 0-.124-2.503c-.353-.58-.924-.97-1.575-1.168V7.58a1.77 1.77 0 0 1 .739.504.75.75 0 0 0 1.137-.978 3.252 3.252 0 0 0-1.952-1.76Z" clip-rule="evenodd"/></svg></div><span class="sc-trend trend-new">Quotes</span></div><div class="sc-val" id="statSubmissions">—</div><div class="sc-lbl">Price Submissions</div></a>
+    </div>
+
+    <div class="match-card">
+      <div class="match-head"><div class="match-title">🤖 Auto-Matching Engine</div><div class="match-status"><span class="status-dot"></span>Running every 15 minutes</div></div>
+      <div class="match-stats"><div class="ms-item"><div class="ms-val" id="msTotalBids">—</div><div class="ms-lbl">Total Matched</div></div><div class="ms-item"><div class="ms-val" id="msUnread">—</div><div class="ms-lbl">Unread</div></div><div class="ms-item"><div class="ms-val" id="msFilters">—</div><div class="ms-lbl">Filters Active</div></div><div class="ms-item"><div class="ms-val" style="font-size:14px" id="msLastRun">—</div><div class="ms-lbl">Last Scan</div></div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel"><div class="panel-head"><span class="panel-title">Recent Matched Bids</span><a href="/api/user/tenders" class="panel-link">View all →</a></div><div class="panel-body" id="recentBidsPanel"><div class="sk" style="height:48px;margin-bottom:10px"></div><div class="sk" style="height:48px;margin-bottom:10px"></div><div class="sk" style="height:48px"></div></div></div>
+      <div class="panel"><div class="panel-head"><span class="panel-title">Quick Actions</span></div><div class="panel-body"><div class="qa-grid"><a href="/api/user/filters-page" class="qa-btn"><div class="qa-ico" style="background:rgba(79,142,247,.14);color:#4f8ef7"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd"/></svg></div><div class="qa-label">New Filter</div><div class="qa-desc">Set category & location</div></a><a href="/api/user/tenders" class="qa-btn"><div class="qa-ico" style="background:rgba(34,201,137,.14);color:#22c989"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg></div><div class="qa-label">Browse Bids</div><div class="qa-desc">All your matched bids</div></a><a href="/api/user/tenders?tab=closing" class="qa-btn"><div class="qa-ico" style="background:rgba(245,166,35,.14);color:#f5a623"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd"/></svg></div><div class="qa-label">Closing Soon</div><div class="qa-desc">Bids ending in 3 days</div></a><a href="/subscription/plans" class="qa-btn"><div class="qa-ico" style="background:rgba(124,92,252,.14);color:#a78bfa"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clip-rule="evenodd"/></svg></div><div class="qa-label">Upgrade Plan</div><div class="qa-desc">More filters & features</div></a></div></div></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// BLOCK 3 — NAV JS
+function navBoot(pageId) {
+  const map={dashboard:'nav-dashboard',bids:'nav-bids',filters:'nav-filters',analytics:'nav-analytics',subscription:'nav-subscription',profile:'nav-profile',settings:'nav-settings'};
+  const el=document.getElementById(map[pageId]);if(el)el.classList.add('active');
+  _navLoadUser();_navLoadBadges();
+}
+async function _navApi(url,opts){try{const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json'},...(opts||{})});if(r.status===401){location.href='/api/users/login-form';return null;}return r.json();}catch(e){return null;}}
+async function _navLoadUser(){const d=await _navApi('/api/user/current');if(!d?.success)return;const u=d.user||d,name=u.companyName||u.email||'User';const av=document.getElementById('navUserAv'),nm=document.getElementById('navUserName'),pl=document.getElementById('navUserPlan');if(av)av.textContent=name.charAt(0).toUpperCase();if(nm)nm.textContent=name;if(pl&&u.planName)pl.textContent=u.planName;document.getElementById('wbName').textContent=name.split(' ')[0]||name;if(u.planName)document.getElementById('wbPlan').textContent=u.planName;}
+async function _navLoadBadges(){const d=await _navApi('/api/user/matches/unviewed/count');if(d?.success){const c=d.count||0,el=document.getElementById('navUnreadBadge');if(el){el.textContent=c>99?'99+':c;el.style.display=c>0?'':'none';}}const fd=await _navApi('/api/user/filters/my');if(fd?.success){const c=fd.filters?.length||fd.total||0,el=document.getElementById('navFilterCount');if(el){el.textContent=c;el.style.display=c>0?'':'none';}}}
+async function logout(){await _navApi('/api/users/logout',{method:'POST'});location.href='/api/users/login-form';}
+function openSb(){document.getElementById('sidebar')?.classList.add('open');document.getElementById('mobOverlay')?.classList.add('open');}
+function closeSb(){document.getElementById('sidebar')?.classList.remove('open');document.getElementById('mobOverlay')?.classList.remove('open');}
+
+// Dashboard specific functions
+async function api(url,opts={}){const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json'},...opts});if(r.status===401){location.href='/api/users/login-form';return null;}return r.json();}
+function timeAgo(d){const ms=Date.now()-new Date(d).getTime();const m=Math.floor(ms/60000);if(m<1)return'just now';if(m<60)return`${m}m ago`;const h=Math.floor(m/60);if(h<24)return`${h}h ago`;return`${Math.floor(h/24)}d ago`;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadDashboard(){
+  const [bidsD, statsD, matchStatsD, subsD, filtersD] = await Promise.all([
+    api('/api/user/bids'), api('/api/user/bids/stats'), api('/api/user/matches/unviewed/count'),
+    api('/api/user/submissions'), api('/api/user/filters/my'),
+  ]);
+  if(statsD?.success){document.getElementById('statActiveBids').textContent=statsD.active??'—';document.getElementById('statClosing').textContent=statsD.closingSoon??'—';}
+  const filterCount=filtersD?.filters?.length||filtersD?.total||0;document.getElementById('statFilters').textContent=filterCount;
+  const subCount=subsD?.submissions?.filter(s=>s.status==='SUBMITTED').length??(subsD?.submitted??'—');document.getElementById('statSubmissions').textContent=subCount;
+  document.getElementById('msTotalBids').textContent=statsD?.total??'—';document.getElementById('msUnread').textContent=matchStatsD?.count??'—';document.getElementById('msFilters').textContent=filterCount;document.getElementById('msLastRun').textContent='15 min';
+  const bids=bidsD?.bids||[];const panel=document.getElementById('recentBidsPanel');
+  if(!bids.length){panel.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--sub2);font-size:13px">No bids matched yet.<br><a href="/api/user/filters-page" style="color:var(--indigo);font-weight:600">Create a filter →</a></div>';return;}
+  const now=new Date();
+  panel.innerHTML=bids.slice(0,6).map(b=>{const ed=b.bidEndDate?new Date(b.bidEndDate):null;const isA=b.isActive&&ed&&ed>now;const isClose=isA&&ed<=new Date(now.getTime()+3*86400000);const dotClass=isClose?'dot-closing':isA?'dot-active':'dot-closed';return `<div class="bid-row"><span class="bid-dot ${dotClass}"></span><div class="bid-info"><div class="bid-num">${esc(b.bidNumber||'—')}</div><div class="bid-item">${esc(b.items||'No description')}</div></div><span class="bid-time">${b.matchedAt?timeAgo(b.matchedAt):'—'}</span></div>`;}).join('');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{navBoot('dashboard');loadDashboard();});
+</script>
+</body>
+</html>

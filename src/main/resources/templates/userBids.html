@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidPilots — My Bids</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+/* BLOCK 1 — NAV CSS (same as dashboard) */
+:root {
+  --bg: #0a0e1a; --bg2: #111827; --bg3: #1a2235; --indigo: #4f8ef7; --purple: #8b5cf6;
+  --violet: #a855f7; --grad: linear-gradient(135deg,#4f8ef7 0%,#7c5cfc 50%,#a855f7 100%);
+  --text: #f1f5f9; --sub: #94a3b8; --sub2: #4e6080; --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12); --radius: 14px; --font: 'Plus Jakarta Sans', sans-serif;
+  --success: #22c989; --warning: #f5a623; --danger: #f0526a; --sidebar: 252px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.bg-canvas{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg-canvas::before{content:'';position:absolute;width:800px;height:800px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(79,142,247,0.12) 0%,transparent 70%);animation:pulse1 9s ease-in-out infinite alternate}
+.bg-canvas::after{content:'';position:absolute;width:600px;height:600px;bottom:0;left:-100px;background:radial-gradient(circle,rgba(124,92,252,0.08) 0%,transparent 70%);animation:pulse2 11s ease-in-out infinite alternate}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);background-size:60px 60px}
+@keyframes pulse1{to{transform:translate(50px,70px)scale(1.1)}}
+@keyframes pulse2{to{transform:translate(-40px,-60px)scale(1.15)}}
+
+/* Sidebar (same as dashboard) */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar);background:rgba(7,10,22,0.98);border-right:1px solid var(--border);z-index:90;display:flex;flex-direction:column;padding-bottom:16px;transition:transform .3s;overflow-y:auto}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:16px 18px 14px;border-bottom:1px solid var(--border);text-decoration:none}
+.sb-logo{width:32px;height:32px;background:var(--grad);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sb-name{font-size:16px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-sec{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--sub2);padding:18px 18px 5px}
+.sb-nav{list-style:none;padding:3px 8px;flex:1}
+.sb-nav li{margin-bottom:1px}
+.sb-nav a{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:9px;color:var(--sub);text-decoration:none;font-size:13px;font-weight:500;transition:all .2s}
+.sb-nav a:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.sb-nav a.active{background:rgba(79,142,247,0.13);color:#7daaff;font-weight:600}
+.ni{width:17px;height:17px;opacity:.65}
+.sb-nav a:hover .ni,.sb-nav a.active .ni{opacity:1}
+.sb-badge{margin-left:auto;background:var(--grad);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px}
+.sb-footer{padding:10px 8px 0;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;transition:background .2s}
+.sb-user:hover{background:rgba(255,255,255,0.04)}
+.u-av{width:28px;height:28px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.u-name{font-size:12px;font-weight:600;color:var(--text)}
+.u-role{font-size:10px;color:var(--sub2)}
+.logout-btn{margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:var(--sub2);transition:color .2s;display:flex}
+.logout-btn:hover{color:var(--danger)}
+.mob-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;cursor:pointer;color:var(--sub)}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89}
+.mob-overlay.open{display:block}
+@media(max-width:768px){:root{--sidebar:0px}.sidebar{transform:translateX(-252px);width:252px}.sidebar.open{transform:none}.mob-btn{display:flex!important}.main{margin-left:0!important}}
+
+/* Main Layout */
+.main{margin-left:var(--sidebar);flex:1;position:relative;z-index:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:80;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;background:rgba(10,14,26,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-title{font-size:15px;font-weight:700}
+.tb-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);font-size:10px;font-weight:700;color:#a5b4fc}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:#4f8ef7;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.tb-right{display:flex;align-items:center;gap:8px}
+.ib{width:34px;height:34px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sub);transition:all .2s;text-decoration:none}
+.ib:hover{border-color:var(--border2);color:var(--text)}
+.page{padding:24px 28px 60px}
+
+/* Bids specific styles */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;transition:all .2s;cursor:pointer}
+.stat-card.clickable:hover{border-color:rgba(79,142,247,.3);transform:translateY(-2px)}
+.stat-card.tab-active{border-color:rgba(79,142,247,.35);background:rgba(79,142,247,.05)}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.stat-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.si-b{background:rgba(79,142,247,.16);color:#4f8ef7}
+.si-g{background:rgba(34,201,137,.14);color:#22c989}
+.si-r{background:rgba(240,82,106,.14);color:#f0526a}
+.si-a{background:rgba(245,166,35,.14);color:#f5a623}
+.si-p{background:rgba(124,92,252,.15);color:#a78bfa}
+.stat-val{font-size:22px;font-weight:800;margin-bottom:2px}
+.stat-lbl{font-size:11px;color:var(--sub)}
+.stat-hint{font-size:9px;color:var(--indigo);margin-top:2px}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.srch-wrap{position:relative;flex:1;min-width:180px}
+.srch-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--sub2)}
+.srch-input{width:100%;padding:9px 12px 9px 36px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}
+.srch-input:focus{border-color:rgba(79,142,247,.45)}
+.sel{padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--sub);font-size:12px;font-family:var(--font);outline:none;min-width:120px}
+.sort-btn{display:flex;align-items:center;gap:5px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--sub);font-size:12px;font-weight:600;cursor:pointer}
+.res-count{font-size:11px;color:var(--sub2)}
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--sub)}
+.tab.on{background:rgba(79,142,247,.14);border-color:rgba(79,142,247,.32);color:#7daaff}
+.tab.t-active.on{background:rgba(34,201,137,.1);border-color:rgba(34,201,137,.28);color:#22c989}
+.tab.t-close.on{background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.26);color:#f5a623}
+.tab.t-ra.on{background:rgba(124,92,252,.1);border-color:rgba(124,92,252,.26);color:#c4b5fd}
+.tc{min-width:18px;height:18px;padding:0 5px;border-radius:9px;font-size:10px;font-weight:800;background:rgba(255,255,255,.1);display:inline-flex;align-items:center;justify-content:center}
+.bids-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px}
+.bid-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all .2s;position:relative}
+.bid-card:hover{border-color:rgba(79,142,247,.25);transform:translateY(-2px)}
+.bc-head{padding:14px 16px 10px 18px;border-bottom:1px solid var(--border)}
+.bc-gem-num{font-size:10px;font-weight:700;color:var(--sub2);margin-bottom:4px}
+.bc-title{font-size:14px;font-weight:700;margin-bottom:7px}
+.badges{display:flex;gap:5px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700}
+.b-active{background:rgba(34,201,137,.1);color:#22c989;border:1px solid rgba(34,201,137,.2)}
+.b-closing{background:rgba(245,166,35,.1);color:#f5a623;border:1px solid rgba(245,166,35,.2)}
+.b-closed{background:rgba(240,82,106,.08);color:#f0526a;border:1px solid rgba(240,82,106,.18)}
+.b-ra{background:rgba(124,92,252,.1);color:#c4b5fd;border:1px solid rgba(124,92,252,.2)}
+.countdown{margin:10px 16px 0 18px;padding:9px 12px;border-radius:10px}
+.cd-ok{background:rgba(34,201,137,.06);border:1px solid rgba(34,201,137,.15)}
+.cd-warn{background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2)}
+.cd-lbl{font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.cd-segs{display:flex;align-items:baseline;gap:5px}
+.cd-n{font-size:18px;font-weight:800;line-height:1}
+.cd-u{font-size:8px;font-weight:600;text-transform:uppercase;display:block}
+.bc-table{display:grid;grid-template-columns:1fr 1fr;margin:12px 16px 0 18px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.bc-cell{padding:8px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.bc-cell-lbl{font-size:9px;font-weight:700;color:var(--sub2);text-transform:uppercase;margin-bottom:3px}
+.bc-cell-val{font-size:12px;font-weight:600;color:var(--text)}
+.sub-bar{margin:10px 16px 0 18px;padding:9px 12px;border-radius:9px;display:flex;align-items:center;gap:10px}
+.sub-bar.has-sub{background:rgba(34,201,137,.06);border:1px solid rgba(34,201,137,.15)}
+.sub-bar.no-sub{background:rgba(79,142,247,.05);border:1px solid rgba(79,142,247,.12)}
+.sub-lbl{font-size:10px;font-weight:700;margin-bottom:1px}
+.sub-detail{font-size:11px;color:var(--sub)}
+.bc-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 12px 18px;border-top:1px solid var(--border);margin-top:12px}
+.bc-time{font-size:10px;color:var(--sub2)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);border:none}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-success{background:rgba(34,201,137,.15);color:#22c989;border:1px solid rgba(34,201,137,.25)}
+.btn-danger{background:rgba(240,82,106,.1);color:#f0526a;border:1px solid rgba(240,82,106,.22)}
+.btn-ghost{background:transparent;color:var(--sub);border:1px solid var(--border2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:480px}
+.modal-header{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:16px;font-weight:800}
+.modal-body{padding:18px 22px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px}
+.field input,.field textarea{width:100%;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.total-preview{padding:10px 13px;background:rgba(34,201,137,.06);border:1px solid rgba(34,201,137,.15);border-radius:10px;display:flex;justify-content:space-between;margin-bottom:16px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px 18px;border-top:1px solid var(--border)}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);font-size:12px}
+.sk{background:linear-gradient(90deg,var(--bg3) 25%,rgba(255,255,255,.03) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media(max-width:900px){.bids-grid{grid-template-columns:1fr}}
+@media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr}.page{padding:14px}}
+</style>
+</head>
+<body>
+<div class="bg-canvas"><div class="bg-grid"></div></div>
+
+<!-- BLOCK 2 — SIDEBAR HTML (same as dashboard, with active state set via JS) -->
+<aside class="sidebar" id="sidebar">
+  <a class="sb-brand" href="/api/user/dashboard"><div class="sb-logo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 3h6a3 3 0 0 1 0 6H4V3Z" fill="white" fill-opacity=".9"/><path d="M4 9h6.5a3.5 3.5 0 0 1 0 7H4V9Z" fill="white"/></svg></div><span class="sb-name">BidPilots</span></a>
+  <span class="sb-sec">Main</span>
+  <ul class="sb-nav"><li><a href="/api/user/dashboard" id="nav-dashboard"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 0 0-1.414 0l-7 7a1 1 0 0 0 1.414 1.414L4 10.414V17a1 1 0 0 0 1 1h4v-4h2v4h4a1 1 0 0 0 1-1v-6.586l.293.293a1 1 0 0 0 1.414-1.414l-7-7Z"/></svg>Dashboard</a></li><li><a href="/api/user/tenders" id="nav-bids"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg>My Bids<span class="sb-badge" id="navUnreadBadge" style="display:none">0</span></a></li><li><a href="/api/user/filters-page" id="nav-filters"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg>My Filters<span class="sb-badge" id="navFilterCount" style="display:none">0</span></a></li><li><a href="/api/user/analytics" id="nav-analytics"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M15.5 2A1.5 1.5 0 0 0 14 3.5v13a1.5 1.5 0 0 0 3 0v-13A1.5 1.5 0 0 0 15.5 2ZM9.5 7A1.5 1.5 0 0 0 8 8.5v8a1.5 1.5 0 0 0 3 0v-8A1.5 1.5 0 0 0 9.5 7ZM3.5 12A1.5 1.5 0 0 0 2 13.5v3a1.5 1.5 0 0 0 3 0v-3A1.5 1.5 0 0 0 3.5 12Z"/></svg>Analytics</a></li><li><a href="/subscription/plans" id="nav-subscription"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.447 3.362A2.25 2.25 0 0 1 8.232 2.5h3.536a2.25 2.25 0 0 1 1.785.862l3.23 4.306a2.25 2.25 0 0 1-.193 2.985l-5.5 5.5a2.25 2.25 0 0 1-3.181 0l-5.5-5.5a2.25 2.25 0 0 1-.193-2.985l3.23-4.306Z" clip-rule="evenodd"/></svg>Subscription</a></li></ul>
+  <span class="sb-sec">Account</span>
+  <ul class="sb-nav"><li><a href="/api/user/profile" id="nav-profile"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.125-2.095.39-.31.53-.843.41-1.412a7.001 7.001 0 0 0-13.07 0Z"/></svg>Profile</a></li><li><a href="/api/user/settings" id="nav-settings"><svg class="ni" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/></svg>Settings</a></li></ul>
+  <div class="sb-footer"><div class="sb-user"><div class="u-av" id="navUserAv">U</div><div><div class="u-name" id="navUserName">Loading…</div><div class="u-role" id="navUserPlan">Free Plan</div></div><button class="logout-btn" onclick="logout()" title="Logout"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.083a.75.75 0 1 0-1.004-1.115l-2.5 2.5a.75.75 0 0 0 0 1.09l2.5 2.5a.75.75 0 1 0 1.004-1.115l-1.048-1.083h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd"/></svg></button></div></div>
+</aside>
+<div class="mob-overlay" id="mobOverlay" onclick="closeSb()"></div>
+
+<main class="main">
+  <div class="topbar"><div class="tb-left"><button class="mob-btn" onclick="openSb()"><svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75ZM2 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10Zm0 5.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd"/></svg></button><span class="tb-title">My Matched Bids</span><span class="tb-pill"><span class="pill-dot"></span>Live</span></div><div class="tb-right"><button class="ib" onclick="loadAll(true)" title="Refresh"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V3.93a.75.75 0 0 0-1.5 0V6.36l-.31-.31A7 7 0 0 0 3.239 9.187a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd"/></svg></button><a href="/api/user/filters-page" class="ib" title="My Filters"><svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd"/></svg></a></div></div>
+
+  <div class="page">
+    <div class="stats-row"><div class="stat-card"><div class="stat-top"><div class="stat-ico si-b"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7Z" clip-rule="evenodd"/></svg></div><span style="font-size:9px;font-weight:700;color:#4f8ef7">TOTAL</span></div><div class="stat-val" id="sTotal">—</div><div class="stat-lbl">Matched Bids</div></div><div class="stat-card clickable" onclick="setTab('active')"><div class="stat-top"><div class="stat-ico si-g"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg></div><span style="font-size:9px;font-weight:700;color:#22c989">OPEN</span></div><div class="stat-val" id="sActive">—</div><div class="stat-lbl">Active Bids</div></div><div class="stat-card clickable" onclick="setTab('closing')"><div class="stat-top"><div class="stat-ico si-a"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd"/></svg></div><span style="font-size:9px;font-weight:700;color:#f5a623">URGENT</span></div><div class="stat-val" id="sClosing">—</div><div class="stat-lbl">Closing in 3 days</div></div><div class="stat-card clickable" onclick="setTab('closed')"><div class="stat-top"><div class="stat-ico si-r"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd"/></svg></div><span style="font-size:9px;font-weight:700;color:#f0526a">DONE</span></div><div class="stat-val" id="sClosed">—</div><div class="stat-lbl">Closed / Expired</div></div><div class="stat-card clickable" onclick="setTab('ra')"><div class="stat-top"><div class="stat-ico si-p"><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10.38 1.103a.75.75 0 0 0-.76 0l-7.25 4.25a.75.75 0 0 0 0 1.294l7.25 4.25a.75.75 0 0 0 .76 0l7.25-4.25a.75.75 0 0 0 0-1.294l-7.25-4.25Z"/><path d="M3.196 8.87l-.825.483a.75.75 0 0 0 0 1.294l7.25 4.25a.75.75 0 0 0 .758 0l7.25-4.25a.75.75 0 0 0 0-1.294l-.825-.484-5.666 3.322a2.25 2.25 0 0 1-2.276 0L3.196 8.87Z"/></svg></div><span style="font-size:9px;font-weight:700;color:#a78bfa">RA</span></div><div class="stat-val" id="sRa">—</div><div class="stat-lbl">Reverse Auction</div></div></div>
+
+    <div class="toolbar"><div class="srch-wrap"><svg class="srch-ico" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd"/></svg><input class="srch-input" type="text" id="searchInput" placeholder="Bid number, item, department…" oninput="applyFilters()"></div><select class="sel" id="stateFilter" onchange="applyFilters()"><option value="">All States</option></select><select class="sel" id="typeFilter" onchange="applyFilters()"><option value="">All Types</option><option value="GEM_ADVT">GeM Advt</option><option value="BID_TO_RA">Bid to RA</option></select><button class="sort-btn" onclick="toggleSort()"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8.834.066a.75.75 0 0 0-1.669 0l-.5 6a.75.75 0 0 0 .75.734H8.25l-.416 7.23a.75.75 0 0 0 1.331.495l4.5-7.5A.75.75 0 0 0 13 6h-.745l.5-5.134A.75.75 0 0 0 12 .066h-3.166ZM5.5 4a.75.75 0 0 0 0 1.5H6V9H5.5a.75.75 0 0 0 0 1.5H8a.75.75 0 0 0 0-1.5H7.5V5.5H8a.75.75 0 0 0 0-1.5H5.5ZM2 5.5a.75.75 0 0 0 0 1.5h.5v3H2a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5H4V7h.5a.75.75 0 0 0 0-1.5H2Z"/></svg><span id="sortLbl">Newest First</span></button><span class="res-count" id="resCount"></span></div>
+
+    <div class="tabs"><div class="tab on" onclick="setTab('all')">All <span class="tc" id="tc-all">0</span></div><div class="tab t-active" onclick="setTab('active')"><svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>Active <span class="tc" id="tc-active">0</span></div><div class="tab t-close" onclick="setTab('closing')"><svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd"/></svg>Closing Soon <span class="tc" id="tc-closing">0</span></div><div class="tab t-ra" onclick="setTab('ra')">RA <span class="tc" id="tc-ra">0</span></div><div class="tab t-closed" onclick="setTab('closed')">Closed <span class="tc" id="tc-closed">0</span></div></div>
+
+    <div class="bids-grid" id="skeletons"><div class="sk-card"><div class="sk" style="height:14px;width:40%;margin-bottom:8px"></div><div class="sk" style="height:18px;width:88%;margin-bottom:12px"></div><div class="sk" style="height:52px;border-radius:10px;margin-bottom:10px"></div></div><div class="sk-card"><div class="sk" style="height:14px;width:35%;margin-bottom:8px"></div><div class="sk" style="height:18px;width:92%;margin-bottom:12px"></div><div class="sk" style="height:52px;border-radius:10px;margin-bottom:10px"></div></div></div>
+    <div class="bids-grid" id="bidsGrid" style="display:none"></div>
+  </div>
+</main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// BLOCK 3 — NAV JS
+function navBoot(pageId){const map={dashboard:'nav-dashboard',bids:'nav-bids',filters:'nav-filters',analytics:'nav-analytics',subscription:'nav-subscription',profile:'nav-profile',settings:'nav-settings'};const el=document.getElementById(map[pageId]);if(el)el.classList.add('active');_navLoadUser();_navLoadBadges();}
+async function _navApi(url,opts){try{const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json'},...(opts||{})});if(r.status===401){location.href='/api/users/login-form';return null;}return r.json();}catch(e){return null;}}
+async function _navLoadUser(){const d=await _navApi('/api/user/current');if(!d?.success)return;const u=d.user||d,name=u.companyName||u.email||'User';const av=document.getElementById('navUserAv'),nm=document.getElementById('navUserName'),pl=document.getElementById('navUserPlan');if(av)av.textContent=name.charAt(0).toUpperCase();if(nm)nm.textContent=name;if(pl&&u.planName)pl.textContent=u.planName;}
+async function _navLoadBadges(){const d=await _navApi('/api/user/matches/unviewed/count');if(d?.success){const c=d.count||0,el=document.getElementById('navUnreadBadge');if(el){el.textContent=c>99?'99+':c;el.style.display=c>0?'':'none';}}const fd=await _navApi('/api/user/filters/my');if(fd?.success){const c=fd.filters?.length||fd.total||0,el=document.getElementById('navFilterCount');if(el){el.textContent=c;el.style.display=c>0?'':'none';}}}
+async function logout(){await _navApi('/api/users/logout',{method:'POST'});location.href='/api/users/login-form';}
+function openSb(){document.getElementById('sidebar')?.classList.add('open');document.getElementById('mobOverlay')?.classList.add('open');}
+function closeSb(){document.getElementById('sidebar')?.classList.remove('open');document.getElementById('mobOverlay')?.classList.remove('open');}
+
+// Bids specific functions (full functionality from original userBids.html)
+let allBids = [], allSubs = {}, activeTab = 'all', sortDesc = true;
+async function api(url,opts={}){const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json'},...opts});if(r.status===401){location.href='/api/users/login-form';return null;}return r.json();}
+function toast(type,msg){const w=document.getElementById('toastWrap');const t=document.createElement('div');t.className=`toast ${type}`;t.innerHTML=`<span>${msg}</span>`;w.appendChild(t);setTimeout(()=>t.remove(),3000);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtINR(n){return (Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2});}
+function timeAgo(d){const ms=Date.now()-new Date(d).getTime();const m=Math.floor(ms/60000);if(m<1)return'just now';if(m<60)return`${m}m ago`;const h=Math.floor(m/60);if(h<24)return`${h}h ago`;return`${Math.floor(h/24)}d ago`;}
+function fmtDate(d){return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+
+async function loadAll(showToast){document.getElementById('skeletons').style.display='';document.getElementById('bidsGrid').style.display='none';const[bidsD,statsD,subsD]=await Promise.all([api('/api/user/bids'),api('/api/user/bids/stats'),api('/api/user/submissions')]);document.getElementById('skeletons').style.display='none';if(!bidsD?.success){document.getElementById('bidsGrid').style.display='grid';document.getElementById('bidsGrid').innerHTML='<div class="empty-state">Could not load bids</div>';return;}allBids=bidsD.bids||[];allSubs={};if(subsD?.success){(subsD.submissions||[]).forEach(s=>{allSubs[s.bidId]=s;});}const states=[...new Set(allBids.map(b=>b.state).filter(Boolean))].sort();const sf=document.getElementById('stateFilter');sf.innerHTML='<option value="">All States</option>'+states.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');if(statsD?.success){document.getElementById('sTotal').textContent=statsD.total??0;document.getElementById('sActive').textContent=statsD.active??0;document.getElementById('sClosed').textContent=statsD.closed??0;document.getElementById('sRa').textContent=statsD.ra??0;document.getElementById('sClosing').textContent=statsD.closingSoon??0;}applyFilters();if(showToast)toast('ok',`${allBids.length} bids refreshed`);}
+
+function setTab(tab){activeTab=tab;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('tab-'+tab).classList.add('on');applyFilters();}
+function applyFilters(){const q=document.getElementById('searchInput').value.toLowerCase().trim();const state=document.getElementById('stateFilter').value;const type=document.getElementById('typeFilter').value;const now=new Date();const soon=new Date(now.getTime()+3*86400000);const counts={all:allBids.length,active:0,closing:0,ra:0,closed:0};allBids.forEach(b=>{const ed=b.bidEndDate?new Date(b.bidEndDate):null;const isA=b.isActive&&ed&&ed>now;if(isA)counts.active++;if(!b.isActive||(ed&&ed<=now))counts.closed++;if(b.bidType==='BID_TO_RA')counts.ra++;if(isA&&ed<=soon)counts.closing++;});Object.entries(counts).forEach(([k,v])=>{const el=document.getElementById('tc-'+k);if(el)el.textContent=v;});let list=allBids.filter(b=>{const ed=b.bidEndDate?new Date(b.bidEndDate):null;const isA=b.isActive&&ed&&ed>now;const isRa=b.bidType==='BID_TO_RA';const isClose=isA&&ed<=soon;const isClosed=!b.isActive||(ed&&ed<=now);if(activeTab==='active'&&!isA)return false;if(activeTab==='closing'&&!isClose)return false;if(activeTab==='ra'&&!isRa)return false;if(activeTab==='closed'&&!isClosed)return false;if(state&&b.state!==state)return false;if(type&&b.bidType!==type)return false;if(q){const hay=[b.bidNumber,b.raNumber,b.items,b.department,b.ministry,b.state,b.city].filter(Boolean).join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});list.sort((a,b)=>{const ta=new Date(a.matchedAt||0).getTime();const tb=new Date(b.matchedAt||0).getTime();return sortDesc?tb-ta:ta-tb;});document.getElementById('resCount').textContent=list.length===allBids.length?`${allBids.length} bids`: `${list.length} of ${allBids.length}`;renderBids(list);}
+function toggleSort(){sortDesc=!sortDesc;document.getElementById('sortLbl').textContent=sortDesc?'Newest First':'Oldest First';applyFilters();}
+function renderBids(list){const grid=document.getElementById('bidsGrid');grid.style.display='grid';if(!list.length){grid.innerHTML='<div class="empty-state">No bids found</div>';return;}grid.innerHTML=list.map(b=>{const endDt=b.bidEndDate?new Date(b.bidEndDate):null;const isActive=b.isActive&&endDt&&endDt>new Date();const sub=allSubs[b.id];return `<div class="bid-card"><div class="bc-head"><div class="bc-gem-num">${esc(b.bidNumber||'—')}</div><div class="bc-title">${esc(b.items||'No description')}</div><div class="badges"><span class="badge ${isActive?'b-active':'b-closed'}">${isActive?'Active':'Closed'}</span></div></div><div class="bc-table"><div class="bc-cell"><div class="bc-cell-lbl">Department</div><div class="bc-cell-val">${esc(b.department||'—')}</div></div><div class="bc-cell"><div class="bc-cell-lbl">Location</div><div class="bc-cell-val">${esc(b.city||'')}${b.city&&b.state?', ':''}${esc(b.state||'')}</div></div></div><div class="bc-foot"><div class="bc-time">Matched ${b.matchedAt?timeAgo(b.matchedAt):'—'}</div><div class="bc-btns">${sub?`<button class="btn btn-success btn-sm">₹ ${fmtINR(sub.quotedPrice)}</button>`:`<button class="btn btn-primary btn-sm">Add Price</button>`}</div></div></div>`;}).join('');}
+
+document.addEventListener('DOMContentLoaded',()=>{navBoot('bids');loadAll(false);});
+</script>
+</body>
+</html>

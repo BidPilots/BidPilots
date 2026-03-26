@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Create your BidPilots account - India's #1 GeM Tender Intelligence Platform">
+	<meta name="keywords" content="GeM, tenders, government contracts, bid management, registration">
+	<meta name="robots" content="index, follow">
+	<title>BidPilots — Create Account | India's #1 GeM Tender Platform</title>
+
+	<!-- Favicon - Using your actual logo.svg -->
+	<link rel="icon" type="image/svg+xml" th:href="@{/images/logo.svg}" href="images/logo.svg">
+	<link rel="icon" type="image/png" sizes="32x32" th:href="@{/images/logo.svg}" href="images/logo.svg">
+	<link rel="icon" type="image/png" sizes="64x64" th:href="@{/images/logo.svg}" href="images/logo.svg">
+	<link rel="icon" type="image/png" sizes="96x96" th:href="@{/images/logo.svg}" href="images/logo.svg">
+	<link rel="icon" type="image/png" sizes="128x128" th:href="@{/images/logo.svg}" href="images/logo.svg">
+	<link rel="apple-touch-icon" sizes="180x180" th:href="@{/images/logo.svg}" href="images/logo.svg">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link
+		href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+		rel="stylesheet">
+	<style>
+		:root {
+			--card-bg: #ffffff;
+			--left-panel-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+			--text-dark: #0f172a;
+			--text-muted: #334155;
+			--border-light: #e2e8f0;
+			--accent: #4f8ef7;
+			--accent-2: #7c5cfc;
+			--success: #22c989;
+			--danger: #f0526a;
+			--placeholder: #94a3b8;
+			--bg: #0a0e1a;
+			--bg2: #111827;
+			--bg3: #1f2937;
+			--indigo: #4f8ef7;
+			--purple: #8b5cf6;
+			--violet: #a855f7;
+			--grad: linear-gradient(135deg, #4f8ef7 0%, #7c5cfc 50%, #a855f7 100%);
+			--text: #f1f5f9;
+			--sub: #94a3b8;
+			--border: rgba(255, 255, 255, 0.08);
+			--border2: rgba(255, 255, 255, 0.14);
+			--glass: rgba(255, 255, 255, 0.97);
+			--radius: 16px;
+			--warning: #f5a623;
+		}
+
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			font-family: 'Sora', sans-serif;
+			background: var(--bg);
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			overflow-x: hidden;
+			position: relative;
+		}
+
+		/* Background - animated mesh (same as index page) */
+		.bg-canvas {
+			position: fixed;
+			inset: 0;
+			z-index: 0;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.bg-canvas::before {
+			content: '';
+			position: absolute;
+			width: 800px;
+			height: 800px;
+			top: -200px;
+			right: -200px;
+			background: radial-gradient(circle, rgba(79, 142, 247, 0.18) 0%, transparent 70%);
+			animation: pulse1 8s ease-in-out infinite alternate;
+		}
+
+		.bg-canvas::after {
+			content: '';
+			position: absolute;
+			width: 600px;
+			height: 600px;
+			bottom: 10%;
+			left: -100px;
+			background: radial-gradient(circle, rgba(124, 92, 252, 0.14) 0%, transparent 70%);
+			animation: pulse2 10s ease-in-out infinite alternate;
+		}
+
+		.bg-grid {
+			position: absolute;
+			inset: 0;
+			background-image:
+				linear-gradient(rgba(79, 142, 247, 0.05) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(79, 142, 247, 0.05) 1px, transparent 1px);
+			background-size: 60px 60px;
+		}
+
+		@keyframes pulse1 {
+			to {
+				transform: translate(40px, 60px) scale(1.1);
+			}
+		}
+
+		@keyframes pulse2 {
+			to {
+				transform: translate(-30px, -50px) scale(1.15);
+			}
+		}
+
+		/* Navigation - Same as login page with white underline */
+		nav {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 100;
+			padding: 0 40px;
+			height: 64px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			background: rgba(10, 14, 26, 0.85);
+			backdrop-filter: blur(20px);
+			border-bottom: 1px solid var(--border-light);
+		}
+
+		.nav-brand {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			text-decoration: none;
+		}
+
+		/* Updated: Using actual logo image like index page */
+		.nav-logo {
+			width: 40px;
+			height: 40px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.nav-logo img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+
+		.nav-name {
+			font-size: 18px;
+			font-weight: 700;
+			background: var(--grad);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+		}
+
+		.nav-links {
+			display: flex;
+			align-items: center;
+			gap: 32px;
+			list-style: none;
+		}
+
+		.nav-links a {
+			color: var(--sub);
+			text-decoration: none;
+			font-size: 14px;
+			font-weight: 500;
+			transition: color .2s;
+		}
+
+		.nav-links a:hover {
+			color: var(--text);
+		}
+
+		.nav-actions {
+			display: flex;
+			gap: 12px;
+			align-items: center;
+		}
+
+		.btn-nav-login {
+			padding: 8px 20px;
+			border: 1px solid var(--border2);
+			border-radius: 8px;
+			background: transparent;
+			color: var(--text);
+			font-size: 14px;
+			font-weight: 500;
+			cursor: pointer;
+			font-family: 'Sora', sans-serif;
+			transition: border-color .2s, background .2s;
+			text-decoration: none;
+			display: inline-block;
+			text-align: center;
+			line-height: 1.2;
+		}
+
+		.btn-nav-login:hover {
+			background: var(--border);
+		}
+
+		/* No Register button in nav for registration page */
+
+		/* card */
+		.card-wrap {
+			position: relative;
+			z-index: 10;
+			width: 100%;
+			max-width: 1060px;
+			display: flex;
+			border-radius: 28px;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			background: var(--card-bg);
+			box-shadow: 0 25px 45px -18px rgba(0, 0, 0, 0.3);
+			overflow: hidden;
+			margin-top: 80px;
+		}
+
+		/* left panel */
+		.left {
+			width: 340px;
+			flex-shrink: 0;
+			background: var(--left-panel-bg);
+			border-right: 1px solid var(--border-light);
+			padding: 36px 28px;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+		}
+
+		.logo {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 30px;
+		}
+
+		.logo-mark {
+			width: 38px;
+			height: 38px;
+			background: var(--grad);
+			border-radius: 10px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.logo-mark svg {
+			width: 20px;
+			height: 20px;
+			fill: none;
+			stroke: white;
+			stroke-width: 2;
+		}
+
+		.logo-text {
+			font-size: 20px;
+			font-weight: 700;
+			color: var(--text-dark);
+		}
+
+		.logo-text span {
+			background: var(--grad);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+		}
+
+		.left-headline {
+			font-size: 23px;
+			font-weight: 700;
+			line-height: 1.25;
+			margin-bottom: 10px;
+			color: var(--text-dark);
+		}
+
+		.left-sub {
+			font-size: 13px;
+			color: var(--text-muted);
+			line-height: 1.5;
+			margin-bottom: 28px;
+		}
+
+		.feature-list {
+			display: flex;
+			flex-direction: column;
+			gap: 14px;
+			margin-bottom: 28px;
+		}
+
+		.feature-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.fdot {
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			background: #ffffff;
+			border: 1px solid var(--border-light);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.fdot svg {
+			width: 13px;
+			height: 13px;
+			color: var(--accent);
+		}
+
+		.feature-item span {
+			font-size: 13px;
+			color: var(--text-dark);
+		}
+
+		.stats-row {
+			display: flex;
+			gap: 16px;
+			padding-top: 20px;
+			border-top: 1px solid var(--border-light);
+		}
+
+		.stat-num {
+			font-size: 22px;
+			font-weight: 700;
+			background: var(--grad);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+		}
+
+		.stat-lbl {
+			font-size: 11px;
+			color: var(--text-muted);
+			margin-top: 4px;
+		}
+
+		.trial-pill {
+			margin-top: 24px;
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			background: rgba(34, 201, 137, .1);
+			border: 1px solid rgba(34, 201, 137, .3);
+			border-radius: 40px;
+			padding: 7px 16px;
+			font-size: 12px;
+			color: var(--success);
+		}
+
+		.trial-pill::before {
+			content: '';
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: var(--success);
+			animation: pulse 2s infinite;
+		}
+
+		@keyframes pulse {
+
+			0%,
+			100% {
+				opacity: 1;
+				transform: scale(1);
+			}
+
+			50% {
+				opacity: .6;
+				transform: scale(1.3);
+			}
+		}
+
+		/* right panel */
+		.right {
+			flex: 1;
+			padding: 36px 32px;
+			background: white;
+		}
+
+		/* steps */
+		.steps {
+			display: flex;
+			align-items: center;
+			gap: 0;
+			margin-bottom: 28px;
+		}
+
+		.step-circle {
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			border: 1.5px solid var(--border-light);
+			background: #f1f5f9;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--text-muted);
+		}
+
+		.step-node.active .step-circle {
+			border-color: var(--accent);
+			background: rgba(79, 142, 247, .1);
+			color: var(--accent);
+		}
+
+		.step-node.done .step-circle {
+			border-color: var(--success);
+			background: rgba(34, 201, 137, .1);
+			color: var(--success);
+		}
+
+		.step-lbl {
+			font-size: 9px;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: .5px;
+		}
+
+		.step-line {
+			flex: 1;
+			height: 1px;
+			background: var(--border-light);
+			margin: 0 6px 18px;
+		}
+
+		.step-line.done {
+			background: var(--success);
+		}
+
+		.panel {
+			display: none;
+			animation: panelIn .3s ease;
+		}
+
+		.panel.active {
+			display: block;
+		}
+
+		@keyframes panelIn {
+			from {
+				opacity: 0;
+				transform: translateY(12px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		.panel-title {
+			font-size: 24px;
+			font-weight: 700;
+			margin-bottom: 4px;
+			color: var(--text-dark);
+		}
+
+		.panel-sub {
+			font-size: 13px;
+			color: var(--text-muted);
+			margin-bottom: 24px;
+		}
+
+		/* form fields */
+		.form-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 16px;
+		}
+
+		.form-full {
+			grid-column: 1/-1;
+		}
+
+		.form-label {
+			font-size: 10px;
+			font-weight: 600;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			margin-bottom: 4px;
+		}
+
+		.input-wrap {
+			position: relative;
+		}
+
+		.input-icon {
+			position: absolute;
+			left: 13px;
+			top: 50%;
+			transform: translateY(-50%);
+			color: var(--text-muted);
+			width: 15px;
+			height: 15px;
+		}
+
+		.field {
+			width: 100%;
+			padding: 11px 14px 11px 42px;
+			background: white;
+			border: 1px solid var(--border-light);
+			border-radius: 9px;
+			color: var(--text-dark);
+			font-size: 13px;
+			outline: none;
+			transition: border-color .2s, box-shadow .2s;
+		}
+
+		.field:focus {
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px rgba(79, 142, 247, .1);
+		}
+
+		.field::placeholder {
+			color: #94a3b8;
+			font-size: 12px;
+		}
+
+		.field-err {
+			font-size: 10px;
+			color: var(--danger);
+			display: none;
+			margin-top: 2px;
+		}
+
+		.field-err.show {
+			display: block;
+		}
+
+		.phone-row {
+			display: flex;
+			gap: 8px;
+		}
+
+		.phone-prefix {
+			padding: 11px 14px;
+			background: #f1f5f9;
+			border: 1px solid var(--border-light);
+			border-radius: 9px;
+			font-size: 13px;
+			color: var(--text-muted);
+		}
+
+		.strength-track {
+			height: 3px;
+			background: #e2e8f0;
+			border-radius: 2px;
+			margin-top: 6px;
+		}
+
+		.strength-fill {
+			height: 100%;
+			border-radius: 2px;
+			transition: width .3s;
+			width: 0;
+		}
+
+		.pwd-toggle {
+			position: absolute;
+			right: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: var(--text-muted);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 4px;
+		}
+
+		.pwd-toggle svg {
+			width: 18px;
+			height: 18px;
+			stroke: var(--text-muted);
+			transition: stroke 0.2s;
+		}
+
+		.pwd-toggle:hover svg {
+			stroke: var(--accent);
+		}
+
+		/* Custom Animated Checkbox Styles */
+		.checkbox-container {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			cursor: pointer;
+			justify-content: flex-start;
+			width: 100%;
+		}
+
+		.check {
+			cursor: pointer;
+			position: relative;
+			width: 18px;
+			height: 18px;
+			-webkit-tap-highlight-color: transparent;
+			transform: translate3d(0, 0, 0);
+			display: inline-block;
+			flex-shrink: 0;
+		}
+
+		.check:before {
+			content: "";
+			position: absolute;
+			top: -15px;
+			left: -15px;
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			background: rgba(34, 50, 84, 0.03);
+			opacity: 0;
+			transition: opacity 0.2s ease;
+		}
+
+		.check svg {
+			position: relative;
+			z-index: 1;
+			fill: none;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+			stroke: #cbd5e1;
+			stroke-width: 1.5;
+			transform: translate3d(0, 0, 0);
+			transition: all 0.2s ease;
+			width: 18px;
+			height: 18px;
+		}
+
+		.check svg path {
+			stroke-dasharray: 60;
+			stroke-dashoffset: 0;
+		}
+
+		.check svg polyline {
+			stroke-dasharray: 22;
+			stroke-dashoffset: 66;
+		}
+
+		.check:hover:before {
+			opacity: 1;
+		}
+
+		.check:hover svg {
+			stroke: #4285f4;
+		}
+
+		#cbx:checked+.check svg {
+			stroke: #4285f4;
+		}
+
+		#cbx:checked+.check svg path {
+			stroke-dashoffset: 60;
+			transition: all 0.3s linear;
+		}
+
+		#cbx:checked+.check svg polyline {
+			stroke-dashoffset: 42;
+			transition: all 0.2s linear;
+			transition-delay: 0.15s;
+		}
+
+		.check-label {
+			font-size: 12px;
+			color: var(--text-muted);
+			cursor: pointer;
+			line-height: 1.4;
+		}
+
+		.check-label a {
+			color: var(--accent);
+			text-decoration: none;
+		}
+
+		.check-label a:hover {
+			text-decoration: underline;
+		}
+
+		/* buttons */
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			padding: 12px 20px;
+			border-radius: 9px;
+			font-size: 13px;
+			font-weight: 600;
+			border: none;
+			cursor: pointer;
+			transition: all .2s;
+			width: 100%;
+		}
+
+		.btn-primary {
+			background: var(--grad);
+			color: white;
+			box-shadow: 0 4px 16px rgba(79, 142, 247, .2);
+		}
+
+		.btn-primary:hover:not(:disabled) {
+			transform: translateY(-1px);
+			box-shadow: 0 8px 22px rgba(79, 142, 247, .3);
+		}
+
+		.btn-ghost {
+			background: #f1f5f9;
+			border: 1px solid var(--border-light);
+			color: var(--text-muted);
+		}
+
+		.spin {
+			width: 15px;
+			height: 15px;
+			border: 2px solid rgba(255, 255, 255, .3);
+			border-top-color: #fff;
+			border-radius: 50%;
+			animation: spin .7s linear infinite;
+			display: none;
+		}
+
+		.btn.loading .spin {
+			display: block;
+		}
+
+		.btn.loading .bi,
+		.btn.loading .bl {
+			display: none;
+		}
+
+		@keyframes spin {
+			to {
+				transform: rotate(360deg);
+			}
+		}
+
+		/* OTP */
+		.otp-row {
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+			margin: 20px 0;
+		}
+
+		.otp-box {
+			width: 50px;
+			height: 56px;
+			text-align: center;
+			font-size: 22px;
+			font-weight: 700;
+			font-family: 'JetBrains Mono', monospace;
+			background: white;
+			border: 1.5px solid var(--border-light);
+			border-radius: 8px;
+			color: var(--text-dark);
+		}
+
+		.otp-box:focus {
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px rgba(79, 142, 247, .1);
+		}
+
+		.otp-box.filled {
+			border-color: var(--accent);
+			background: #f5f9ff;
+		}
+
+		.otp-meta {
+			display: flex;
+			justify-content: space-between;
+			font-size: 11px;
+			color: var(--text-muted);
+			margin-top: 6px;
+		}
+
+		.resend-btn {
+			background: none;
+			border: none;
+			color: var(--accent);
+			cursor: pointer;
+			font-size: 11px;
+		}
+
+		.timer {
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 12px;
+		}
+
+		.timer.urgent {
+			color: var(--danger);
+		}
+
+		/* alerts & success */
+		.alert {
+			border-radius: 8px;
+			padding: 10px 14px;
+			font-size: 11px;
+			margin-bottom: 14px;
+			display: none;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.alert.show {
+			display: flex;
+		}
+
+		.alert.danger {
+			background: rgba(240, 82, 106, .08);
+			border: 1px solid rgba(240, 82, 106, .25);
+			color: #b91c1c;
+		}
+
+		.success-icon {
+			width: 70px;
+			height: 70px;
+			margin: 0 auto 16px;
+			border-radius: 50%;
+			background: rgba(34, 201, 137, .12);
+			border: 2px solid rgba(34, 201, 137, .3);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.success-icon svg {
+			width: 30px;
+			height: 30px;
+			color: var(--success);
+		}
+
+		.success-title {
+			font-size: 22px;
+			font-weight: 700;
+			margin-bottom: 6px;
+		}
+
+		.success-sub {
+			font-size: 12px;
+			color: var(--text-muted);
+			margin-bottom: 18px;
+		}
+
+		.success-card {
+			background: #f8fafc;
+			border: 1px solid var(--border-light);
+			border-radius: 8px;
+			padding: 14px 16px;
+			margin-bottom: 18px;
+		}
+
+		.srow {
+			display: flex;
+			justify-content: space-between;
+			padding: 6px 0;
+			font-size: 13px;
+		}
+
+		.srow:not(:last-child) {
+			border-bottom: 1px solid var(--border-light);
+		}
+
+		.cd-bar {
+			height: 3px;
+			background: #e2e8f0;
+			border-radius: 2px;
+			margin: 14px 0 4px;
+		}
+
+		.cd-fill {
+			height: 100%;
+			background: var(--grad);
+			width: 100%;
+			transition: width 1s;
+		}
+
+		/* toast */
+		#toastArea {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 999;
+		}
+
+		.toast {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: white;
+			border: 1px solid var(--border-light);
+			border-radius: 8px;
+			padding: 11px 15px;
+			font-size: 12px;
+			box-shadow: 0 6px 20px rgba(0, 0, 0, .1);
+			margin-bottom: 6px;
+		}
+
+		.panel-footer {
+			text-align: center;
+			margin-top: 18px;
+			font-size: 12px;
+			color: var(--text-muted);
+		}
+
+		.panel-footer a {
+			color: var(--accent);
+			text-decoration: none;
+		}
+
+		@media(max-width:800px) {
+			.left {
+				display: none;
+			}
+
+			nav {
+				padding: 0 16px;
+			}
+
+			.nav-links {
+				display: none;
+			}
+		}
+	</style>
+</head>
+
+<body>
+
+	<!-- Background - same as index page -->
+	<div class="bg-canvas">
+		<div class="bg-grid"></div>
+	</div>
+
+	<div id="toastArea"></div>
+
+	<!-- Navigation - Same as login page with white underline and logo -->
+	<nav>
+		<a class="nav-brand" th:href="@{/}" href="/">
+			<div class="nav-logo">
+				<img th:src="@{/images/white-logo.svg}" src="images/white-logo.svg" alt="BidPilots Logo">
+			</div>
+			<span class="nav-name">BidPilots</span>
+		</a>
+		<ul class="nav-links">
+			<li><a th:href="@{/#how-it-works}" href="/#how-it-works">How It Works</a></li>
+			<li><a th:href="@{/#features}" href="/#features">Features</a></li>
+			<li><a th:href="@{/#categories}" href="/#categories">Categories</a></li>
+			<li><a th:href="@{/#success}" href="/#success">Success Stories</a></li>
+			<li><a th:href="@{/subscription/plans}" href="/subscription/plans">Plans</a></li>
+		</ul>
+		<div class="nav-actions">
+			<a th:href="@{/api/users/login-form}" href="/api/users/login-form" class="btn-nav-login">Log In</a>
+			<!-- No Register button on registration page -->
+		</div>
+	</nav>
+
+	<div class="card-wrap">
+		<!-- left panel -->
+		<div class="left">
+			<div>
+				<div class="logo">
+					<div class="logo-mark">
+						<img th:src="@{/images/white-logo.svg}" src="images/white-logo.svg" alt="BidPilots Logo"
+							style="width: 40px; height: 40px; object-fit: contain;">
+					</div>
+					<div class="logo-text">Bid<span>Pilots</span></div>
+				</div>
+				<div class="left-headline">Win more GeM<br>contracts, faster</div>
+				<div class="left-sub">Real‑time bid intelligence for the Government e‑Marketplace.</div>
+				<div class="feature-list">
+					<div class="feature-item">
+						<div class="fdot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+							</svg></div><span>Real‑time bid alerts</span>
+					</div>
+					<div class="feature-item">
+						<div class="fdot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="11" cy="11" r="8" />
+								<line x1="21" y1="21" x2="16.65" y2="16.65" />
+							</svg></div><span>Smart bid matching</span>
+					</div>
+					<div class="feature-item">
+						<div class="fdot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<rect x="3" y="11" width="18" height="11" rx="2" />
+								<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+							</svg></div><span>OTP verified & secure</span>
+					</div>
+					<div class="feature-item">
+						<div class="fdot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+							</svg></div><span>30‑day free trial</span>
+					</div>
+				</div>
+				<div class="stats-row">
+					<div class="stat-item">
+						<div class="stat-num">5K+</div>
+						<div class="stat-lbl">Users</div>
+					</div>
+					<div class="stat-item">
+						<div class="stat-num">₹2.5B</div>
+						<div class="stat-lbl">Bids tracked</div>
+					</div>
+					<div class="stat-item">
+						<div class="stat-num">99.9%</div>
+						<div class="stat-lbl">Uptime</div>
+					</div>
+				</div>
+			</div>
+			<div class="trial-pill">30 days free — no card required</div>
+		</div>
+
+		<!-- right panel -->
+		<div class="right">
+			<!-- step indicator -->
+			<div class="steps">
+				<div class="step-node active" id="si-1">
+					<div class="step-circle" id="sc-1">1</div>
+					<div class="step-lbl">Register</div>
+				</div>
+				<div class="step-line" id="sl-1"></div>
+				<div class="step-node" id="si-2">
+					<div class="step-circle" id="sc-2">2</div>
+					<div class="step-lbl">Verify</div>
+				</div>
+				<div class="step-line" id="sl-2"></div>
+				<div class="step-node" id="si-3">
+					<div class="step-circle" id="sc-3">3</div>
+					<div class="step-lbl">Done</div>
+				</div>
+			</div>
+
+			<!-- panel 1 - Registration -->
+			<div class="panel active" id="panel1">
+				<div class="panel-title">Create account</div>
+				<div class="panel-sub">Start your 30-day free trial. No credit card needed.</div>
+				<div id="p1-alert" class="alert danger"><span>⚠️</span><span id="p1-msg"></span></div>
+				<div class="form-grid">
+					<div class="form-group form-full">
+						<label class="form-label">Company name<span class="req">*</span></label>
+						<div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor">
+								<rect x="2" y="7" width="20" height="14" rx="2" />
+								<path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+							</svg><input type="text" id="companyName" class="field" placeholder="Your company name">
+						</div>
+						<div class="field-err" id="err-company">Required (min 2 chars)</div>
+					</div>
+
+					<!-- GST FIELD - REQUIRED -->
+					<div class="form-group form-full">
+						<label class="form-label">GST Number<span class="req">*</span></label>
+						<div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor">
+								<rect x="3" y="4" width="18" height="16" rx="2" />
+								<line x1="8" y1="10" x2="16" y2="10" />
+								<line x1="8" y1="14" x2="12" y2="14" />
+							</svg><input type="text" id="gstNumber" class="field" placeholder="22AAAAA0000A1Z5"
+								maxlength="15">
+						</div>
+						<div class="field-err" id="err-gst">Valid GST number required (e.g., 22AAAAA0000A1Z5)</div>
+					</div>
+
+					<div class="form-group">
+						<label class="form-label">Email<span class="req">*</span></label>
+						<div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor">
+								<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+								<polyline points="22,6 12,13 2,6" />
+							</svg><input type="email" id="email" class="field" placeholder="you@company.com"></div>
+						<div class="field-err" id="err-email">Valid email required</div>
+					</div>
+					<div class="form-group">
+						<label class="form-label">Mobile<span class="req">*</span></label>
+						<div class="phone-row"><span class="phone-prefix">+91</span><input type="tel" id="mobile"
+								class="field" placeholder="9876543210" maxlength="10"></div>
+						<div class="field-err" id="err-mobile">10-digit number</div>
+					</div>
+					<div class="form-group">
+						<label class="form-label">Password<span class="req">*</span></label>
+						<div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor">
+								<rect x="3" y="11" width="18" height="11" rx="2" />
+								<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+							</svg><input type="password" id="password" class="field has-toggle"
+								placeholder="Min 8 characters">
+							<button type="button" class="pwd-toggle" onclick="togglePwd('password',this)">
+								<svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+									stroke-width="2">
+									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+									<circle cx="12" cy="12" r="3" />
+								</svg>
+								<svg class="eye-closed" style="display:none;" viewBox="0 0 24 24" fill="none"
+									stroke="currentColor" stroke-width="2">
+									<path
+										d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+									<line x1="1" y1="1" x2="23" y2="23" />
+								</svg>
+							</button>
+						</div>
+						<div class="strength-track">
+							<div class="strength-fill" id="str-fill"></div>
+						</div>
+						<div class="strength-txt" id="str-txt"></div>
+						<div class="field-err" id="err-password">Uppercase, lowercase, number, special</div>
+					</div>
+					<div class="form-group">
+						<label class="form-label">Confirm<span class="req">*</span></label>
+						<div class="input-wrap"><svg class="input-icon" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor">
+								<rect x="3" y="11" width="18" height="11" rx="2" />
+								<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+							</svg><input type="password" id="confirmPassword" class="field has-toggle"
+								placeholder="Repeat">
+							<button type="button" class="pwd-toggle" onclick="togglePwd('confirmPassword',this)">
+								<svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+									stroke-width="2">
+									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+									<circle cx="12" cy="12" r="3" />
+								</svg>
+								<svg class="eye-closed" style="display:none;" viewBox="0 0 24 24" fill="none"
+									stroke="currentColor" stroke-width="2">
+									<path
+										d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+									<line x1="1" y1="1" x2="23" y2="23" />
+								</svg>
+							</button>
+						</div>
+						<div class="field-err" id="err-confirm">Must match</div>
+					</div>
+
+					<!-- Terms Checkbox with Custom Animated Checkbox -->
+					<div class="form-group form-full">
+						<div class="checkbox-container">
+							<input type="checkbox" id="cbx" style="display: none;">
+							<label for="cbx" class="check">
+								<svg width="18px" height="18px" viewBox="0 0 18 18">
+									<path
+										d="M1,9 L1,3.5 C1,2 2,1 3.5,1 L14.5,1 C16,1 17,2 17,3.5 L17,14.5 C17,16 16,17 14.5,17 L3.5,17 C2,17 1,16 1,14.5 L1,9 Z">
+									</path>
+									<polyline points="1 9 7 14 15 4"></polyline>
+								</svg>
+							</label>
+							<label for="cbx" class="check-label">I agree to the <a href="#">Terms of Service</a> and <a
+									href="#">Privacy Policy</a></label>
+						</div>
+						<div class="field-err" id="err-terms">You must accept the terms to continue</div>
+					</div>
+
+					<div class="form-full"><button id="btn-register" class="btn btn-primary"
+							onclick="submitRegistration()"><span class="spin"></span><span class="bl">Create Account &
+								Send OTP</span></button></div>
+				</div>
+				<div class="panel-footer">Already have an account? <a th:href="@{/api/users/login-form}"
+						href="/api/users/login-form">Login</a></div>
+			</div>
+
+			<!-- panel 2 (OTP) -->
+			<div class="panel" id="panel2">
+				<div style="text-align:center;margin-bottom:6px">
+					<div
+						style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.1);border:1.5px solid rgba(79,142,247,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+							stroke-width="2">
+							<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+							<polyline points="22,6 12,13 2,6" />
+						</svg>
+					</div>
+					<div class="panel-title">Check your email</div>
+					<div class="panel-sub">Code sent to <strong id="otp-email" style="color:var(--accent)"></strong>
+					</div>
+				</div>
+				<div id="p2-alert" class="alert danger"><span>⚠️</span><span id="p2-msg"></span></div>
+				<div class="otp-row"><input class="otp-box" id="o1" maxlength="1" type="text"><input class="otp-box"
+						id="o2" maxlength="1" type="text"><input class="otp-box" id="o3" maxlength="1"
+						type="text"><input class="otp-box" id="o4" maxlength="1" type="text"><input class="otp-box"
+						id="o5" maxlength="1" type="text"><input class="otp-box" id="o6" maxlength="1" type="text">
+				</div>
+				<div class="otp-meta"><button class="resend-btn" id="resend-btn" disabled onclick="resendOTP()">Resend
+						code</button><span class="timer" id="otp-timer">10:00</span></div>
+				<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px"><button id="btn-verify"
+						class="btn btn-primary" onclick="verifyOTP()"><span class="spin"></span><span class="bl">Verify
+							& Activate</span></button><button class="btn btn-ghost" onclick="goToPanel(1)">←
+						Back</button></div>
+			</div>
+
+			<!-- panel 3 (success) -->
+			<div class="panel" id="panel3">
+				<div class="success-wrap">
+					<div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							stroke-width="2.5">
+							<polyline points="20 6 9 17 4 12" />
+						</svg></div>
+					<div class="success-title">You're all set! 🎉</div>
+					<div class="success-sub">Account created.<br>Redirecting to login…</div>
+					<div class="success-card">
+						<div class="srow"><span class="skey">Company</span><span class="sval" id="succ-company">—</span>
+						</div>
+						<div class="srow"><span class="skey">Email</span><span class="sval" id="succ-email">—</span>
+						</div>
+						<div class="srow"><span class="skey">GST</span><span class="sval" id="succ-gst">—</span>
+						</div>
+					</div>
+					<div class="cd-bar">
+						<div class="cd-fill" id="cd-fill" style="width:100%"></div>
+					</div>
+					<div class="cd-txt" id="cd-txt">Redirecting in 4s</div><button class="btn btn-primary"
+						onclick="goToLogin()" style="margin-top:14px">Login Now</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const API = {initiate: '/api/users/initiate-registration', verify: '/api/users/verify-email-otp', resend: '/api/users/resend-email-otp'};
+		const LOGIN_URL = '/api/users/login-form';
+		const state = {email: '', company: '', gst: '', timerSec: 600, timerH: null, resendH: null, resendSec: 0};
+
+		// Toggle password visibility with SVG icons
+		function togglePwd(id, btn) {
+			const input = document.getElementById(id);
+			const eyeOpen = btn.querySelector('.eye-open');
+			const eyeClosed = btn.querySelector('.eye-closed');
+
+			if (input.type === 'password') {
+				input.type = 'text';
+				eyeOpen.style.display = 'none';
+				eyeClosed.style.display = 'block';
+			} else {
+				input.type = 'password';
+				eyeOpen.style.display = 'block';
+				eyeClosed.style.display = 'none';
+			}
+		}
+
+		// Password strength meter
+		document.getElementById('password')?.addEventListener('input', function () {
+			const p = this.value, f = document.getElementById('str-fill'), t = document.getElementById('str-txt');
+			if (!p) {f.style.width = '0'; t.textContent = ''; return;}
+			let s = 0;
+			if (p.length >= 8) s += 25;
+			if (/[a-z]/.test(p)) s += 20;
+			if (/[A-Z]/.test(p)) s += 20;
+			if (/\d/.test(p)) s += 15;
+			if (/[@#$%^&+=!]/.test(p)) s += 20;
+			f.style.width = s + '%';
+			const bg = s < 35 ? '#f0526a' : s < 60 ? '#f5a623' : s < 80 ? '#4f8ef7' : '#22c989';
+			f.style.background = bg;
+			t.textContent = s < 35 ? 'Weak' : s < 60 ? 'Fair' : s < 80 ? 'Good' : 'Strong';
+			t.style.color = bg;
+		});
+
+		// GST Validation function
+		function validateGST(gst) {
+			if (!gst || gst.trim() === '') return false;
+			const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+			return gstRegex.test(gst.toUpperCase());
+		}
+
+		function goToPanel(n) {
+			document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i + 1 === n));
+			for (let i = 1; i <= 3; i++) {
+				document.getElementById('si-' + i).classList.remove('active', 'done');
+				document.getElementById('sc-' + i).textContent = i;
+				if (i < n) {
+					document.getElementById('si-' + i).classList.add('done');
+					document.getElementById('sc-' + i).textContent = '✓';
+				}
+				if (i === n) document.getElementById('si-' + i).classList.add('active');
+				if (i < 3) document.getElementById('sl-' + i).classList.toggle('done', i < n);
+			}
+			window.scrollTo({top: 0});
+		}
+
+		function showAlert(p, t, m) {
+			const b = document.getElementById('p' + p + '-alert'), s = document.getElementById('p' + p + '-msg');
+			if (b) {
+				b.classList.add('show', t);
+				s.textContent = m;
+			}
+		}
+
+		function hideAlert(p) {
+			document.getElementById('p' + p + '-alert')?.classList.remove('show');
+		}
+
+		function toast(msg, type) {
+			const t = document.createElement('div');
+			t.className = 'toast ' + type;
+			t.innerHTML = '<span>✅</span><span>' + msg + '</span>';
+			document.getElementById('toastArea').appendChild(t);
+			setTimeout(() => t.remove(), 3500);
+		}
+
+		function setLoading(id, on) {
+			const b = document.getElementById(id);
+			if (b) {
+				b.disabled = on;
+				b.classList.toggle('loading', on);
+			}
+		}
+
+		// OTP inputs
+		const OTP_IDS = ['o1', 'o2', 'o3', 'o4', 'o5', 'o6'];
+		OTP_IDS.forEach((id, i) => {
+			const e = document.getElementById(id);
+			if (e) {
+				e.addEventListener('input', function () {
+					this.value = this.value.replace(/\D/g, '').slice(0, 1);
+					this.classList.toggle('filled', !!this.value);
+					if (this.value && i < 5) document.getElementById(OTP_IDS[i + 1]).focus();
+					if (getOTP().length === 6) setTimeout(verifyOTP, 200);
+				});
+				e.addEventListener('keydown', function (ev) {
+					if (ev.key === 'Backspace' && !this.value && i > 0) document.getElementById(OTP_IDS[i - 1]).focus();
+				});
+			}
+		});
+
+		function getOTP() {
+			let r = '';
+			OTP_IDS.forEach(id => {const e = document.getElementById(id); if (e) r += e.value;});
+			return r;
+		}
+
+		function clearOTP() {
+			OTP_IDS.forEach(id => {const e = document.getElementById(id); if (e) {e.value = ''; e.classList.remove('filled');} });
+		}
+
+		function startOTPTimer() {
+			clearInterval(state.timerH);
+			state.timerSec = 600;
+			_upd();
+			state.timerH = setInterval(() => {
+				state.timerSec--;
+				_upd();
+				if (state.timerSec <= 0) {
+					clearInterval(state.timerH);
+					showAlert(2, 'danger', 'OTP expired');
+					document.getElementById('btn-verify').disabled = true;
+				}
+			}, 1000);
+		}
+
+		function _upd() {
+			const m = Math.floor(state.timerSec / 60), s = state.timerSec % 60;
+			const el = document.getElementById('otp-timer');
+			if (el) el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+		}
+
+		function startResendCooldown(sec = 30) {
+			clearInterval(state.resendH);
+			state.resendSec = sec;
+			const btn = document.getElementById('resend-btn');
+			btn.disabled = true;
+			btn.textContent = `Resend in ${sec}s`;
+			state.resendH = setInterval(() => {
+				state.resendSec--;
+				btn.textContent = state.resendSec > 0 ? `Resend in ${state.resendSec}s` : 'Resend code';
+				if (state.resendSec <= 0) {clearInterval(state.resendH); btn.disabled = false;}
+			}, 1000);
+		}
+
+		function validateForm() {
+			clearErrors();
+			const c = document.getElementById('companyName').value.trim();
+			const g = document.getElementById('gstNumber').value.trim().toUpperCase();
+			const e = document.getElementById('email').value.trim();
+			const m = document.getElementById('mobile').value.trim();
+			const p = document.getElementById('password').value;
+			const cp = document.getElementById('confirmPassword').value;
+			const terms = document.getElementById('cbx').checked;
+			let ok = true;
+
+			if (!c || c.length < 2) {fieldErr('err-company', 'companyName'); ok = false;}
+
+			if (!g) {
+				fieldErr('err-gst', 'gstNumber');
+				ok = false;
+			} else if (!validateGST(g)) {
+				fieldErr('err-gst', 'gstNumber');
+				ok = false;
+			}
+
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) {fieldErr('err-email', 'email'); ok = false;}
+			if (!/^[6-9]\d{9}$/.test(m)) {fieldErr('err-mobile', 'mobile'); ok = false;}
+			if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!]).{8,}$/.test(p)) {fieldErr('err-password', 'password'); ok = false;}
+			if (p !== cp) {fieldErr('err-confirm', 'confirmPassword'); ok = false;}
+			if (!terms) {fieldErr('err-terms'); ok = false;}
+
+			return ok ? {company: c, gst: g, email: e, mobile: m, password: p, confirm: cp} : null;
+		}
+
+		function fieldErr(id, inpId) {
+			const e = document.getElementById(id);
+			if (e) e.classList.add('show');
+			if (inpId) document.getElementById(inpId)?.classList.add('err');
+		}
+
+		function clearErrors() {
+			document.querySelectorAll('.field-err').forEach(e => e.classList.remove('show'));
+			document.querySelectorAll('.field').forEach(f => f.classList.remove('err'));
+		}
+
+		async function submitRegistration() {
+			hideAlert(1);
+			const v = validateForm();
+			if (!v) return;
+
+			setLoading('btn-register', true);
+
+			try {
+				const requestBody = {
+					companyName: v.company,
+					email: v.email,
+					mobileNumber: v.mobile,
+					gstNumber: v.gst,
+					password: v.password,
+					confirmPassword: v.confirm
+				};
+
+				const r = await fetch(API.initiate, {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify(requestBody)
+				});
+
+				const d = await r.json();
+
+				if (d.success) {
+					state.email = v.email;
+					state.company = v.company;
+					state.gst = v.gst;
+
+					document.getElementById('otp-email').textContent = v.email;
+					goToPanel(2);
+					startOTPTimer();
+					startResendCooldown(30);
+					toast('OTP sent', 'success');
+				} else {
+					showAlert(1, 'danger', d.message || 'Registration failed');
+				}
+			} catch (e) {
+				console.error('Registration error:', e);
+				showAlert(1, 'danger', 'Network error. Please try again.');
+			} finally {
+				setLoading('btn-register', false);
+			}
+		}
+
+		async function verifyOTP() {
+			hideAlert(2);
+			const otp = getOTP();
+			if (otp.length !== 6) {showAlert(2, 'danger', 'Enter 6-digit OTP'); return;}
+			if (state.timerSec <= 0) {showAlert(2, 'danger', 'OTP expired'); return;}
+
+			setLoading('btn-verify', true);
+
+			try {
+				const r = await fetch(API.verify, {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({email: state.email, otp})
+				});
+
+				const d = await r.json();
+
+				if (d.success) {
+					clearInterval(state.timerH);
+					clearInterval(state.resendH);
+
+					document.getElementById('succ-company').textContent = state.company;
+					document.getElementById('succ-email').textContent = state.email;
+					document.getElementById('succ-gst').textContent = state.gst;
+
+					goToPanel(3);
+					toast('Account created!', 'success');
+					startRedirectCountdown();
+				} else {
+					clearOTP();
+					showAlert(2, 'danger', d.message || 'Invalid OTP');
+				}
+			} catch (e) {
+				showAlert(2, 'danger', 'Network error');
+			} finally {
+				setLoading('btn-verify', false);
+			}
+		}
+
+		async function resendOTP() {
+			if (state.resendSec > 0) return;
+			hideAlert(2);
+
+			const btn = document.getElementById('resend-btn');
+			btn.disabled = true;
+			btn.textContent = 'Sending…';
+
+			try {
+				const r = await fetch(API.resend, {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({email: state.email})
+				});
+
+				const d = await r.json();
+
+				if (d.success) {
+					clearOTP();
+					document.getElementById('btn-verify').disabled = false;
+					startOTPTimer();
+					startResendCooldown(60);
+					toast('New OTP sent', 'success');
+				} else {
+					showAlert(2, 'danger', d.message || 'Resend failed');
+					btn.disabled = false;
+					btn.textContent = 'Resend code';
+				}
+			} catch (e) {
+				showAlert(2, 'danger', 'Network error');
+				btn.disabled = false;
+				btn.textContent = 'Resend code';
+			}
+		}
+
+		function startRedirectCountdown() {
+			let sec = 4;
+			const fill = document.getElementById('cd-fill'), txt = document.getElementById('cd-txt');
+			const h = setInterval(() => {
+				sec--;
+				fill.style.width = (sec / 4 * 100) + '%';
+				txt.textContent = sec > 0 ? `Redirecting in ${sec}s` : 'Redirecting…';
+				if (sec <= 0) {clearInterval(h); goToLogin();}
+			}, 1000);
+		}
+
+		function goToLogin() {
+			window.location.href = LOGIN_URL;
+		}
+
+		document.addEventListener('keydown', e => {
+			if (e.key !== 'Enter') return;
+			if (document.getElementById('panel1').classList.contains('active')) submitRegistration();
+			else if (document.getElementById('panel2').classList.contains('active') && getOTP().length === 6) verifyOTP();
+		});
+
+		// Real-time GST validation hint
+		document.getElementById('gstNumber')?.addEventListener('input', function () {
+			const gst = this.value.trim().toUpperCase();
+			const errEl = document.getElementById('err-gst');
+
+			if (!gst) {
+				errEl.textContent = 'GST number is required';
+				errEl.classList.add('show');
+				this.classList.add('err');
+			} else if (!validateGST(gst)) {
+				errEl.textContent = 'Invalid GST format (e.g., 22AAAAA0000A1Z5)';
+				errEl.classList.add('show');
+				this.classList.add('err');
+			} else {
+				errEl.classList.remove('show');
+				this.classList.remove('err');
+			}
+		});
+	</script>
+</body>
+
+</html>

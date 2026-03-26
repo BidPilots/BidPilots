@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Payment Processing — BidPilots</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'DM Sans',sans-serif;background:#f6f4ef;min-height:100vh;display:flex;align-items:center;justify-content:center}
+        .card{background:#fff;border:1px solid #e0ddd4;border-radius:16px;padding:3rem 2.5rem;max-width:480px;width:90%;text-align:center}
+        .icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:2rem}
+        .icon-spin{width:72px;height:72px;border:4px solid #e0ddd4;border-top-color:#1a3cff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.5rem}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .icon-success{background:#edfaf3;color:#1a7a3f}
+        .icon-error{background:#fff5f5;color:#c0392b}
+        h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;margin-bottom:.75rem;color:#0d0d0d}
+        p{color:#666;font-size:.95rem;line-height:1.6;margin-bottom:1.5rem}
+        .btn{display:inline-block;padding:.8rem 2rem;border-radius:10px;font-weight:500;font-size:.9rem;text-decoration:none;cursor:pointer;border:none;transition:all .15s}
+        .btn-primary{background:#0d0d0d;color:#fff}
+        .btn-primary:hover{background:#222}
+        .btn-ghost{background:transparent;border:1px solid #e0ddd4;color:#444;margin-left:.75rem}
+        .btn-ghost:hover{background:#f0ede5}
+        .status-msg{font-size:.8rem;color:#888;margin-top:1rem}
+        #steps{text-align:left;background:#f6f4ef;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.85rem;display:none}
+        #steps.show{display:block}
+        .step{display:flex;align-items:center;gap:.5rem;padding:.3rem 0;color:#666}
+        .step.done{color:#1a7a3f}
+        .step.error{color:#c0392b}
+        .step-dot{width:8px;height:8px;border-radius:50%;background:#ddd;flex-shrink:0}
+        .step.done .step-dot{background:#1a7a3f}
+        .step.error .step-dot{background:#c0392b}
+        .step.active .step-dot{background:#1a3cff;animation:pulse 1s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="spinner" class="icon-spin"></div>
+    <div id="iconSuccess" class="icon icon-success" style="display:none">✓</div>
+    <div id="iconError"   class="icon icon-error"   style="display:none">✕</div>
+
+    <h2 id="title">Processing payment...</h2>
+    <p  id="subtitle">Please wait while we verify your payment with Razorpay.</p>
+
+    <div id="steps">
+        <div class="step active" id="step1"><span class="step-dot"></span>Verifying payment signature</div>
+        <div class="step"        id="step2"><span class="step-dot"></span>Activating subscription</div>
+        <div class="step"        id="step3"><span class="step-dot"></span>Updating your account</div>
+    </div>
+
+    <div id="actions" style="display:none">
+        <a id="primaryBtn" href="/api/users/login-form" class="btn btn-primary">Go to Login</a>
+        <a id="secondaryBtn" href="/subscription/plans" class="btn btn-ghost" style="display:none">View Plans</a>
+    </div>
+
+    <p id="statusMsg" class="status-msg"></p>
+</div>
+
+<script>
+// Razorpay calls your return URL with these query params after payment
+// URL format: /payment/callback?razorpay_payment_id=xxx&razorpay_order_id=xxx&razorpay_signature=xxx
+const params       = new URLSearchParams(window.location.search);
+const paymentId    = params.get('razorpay_payment_id');
+const orderId      = params.get('razorpay_order_id');
+const signature    = params.get('razorpay_signature');
+const subId        = sessionStorage.getItem('pendingSubscriptionId');
+const planName     = sessionStorage.getItem('pendingPlanName') || 'your plan';
+
+function setStep(stepId, state) {
+    const el = document.getElementById(stepId);
+    if (!el) return;
+    el.className = 'step ' + state;
+}
+
+function showSuccess(message) {
+    document.getElementById('spinner').style.display    = 'none';
+    document.getElementById('iconSuccess').style.display = 'flex';
+    document.getElementById('title').textContent        = 'Payment successful!';
+    document.getElementById('subtitle').textContent     = message;
+    document.getElementById('primaryBtn').textContent   = 'Go to Login';
+    document.getElementById('primaryBtn').href          = '/api/users/login-form';
+    document.getElementById('actions').style.display   = 'block';
+    sessionStorage.removeItem('pendingSubscriptionId');
+    sessionStorage.removeItem('pendingPlanName');
+    // Auto-redirect to login after 3 seconds
+    setTimeout(() => { window.location.href = '/api/users/login-form'; }, 3000);
+    document.getElementById('statusMsg').textContent = 'Redirecting to login in 3 seconds...';
+}
+
+function showError(message) {
+    document.getElementById('spinner').style.display  = 'none';
+    document.getElementById('iconError').style.display = 'flex';
+    document.getElementById('title').textContent      = 'Payment failed';
+    document.getElementById('subtitle').textContent   = message;
+    document.getElementById('primaryBtn').textContent  = 'Try Again';
+    document.getElementById('primaryBtn').href         = '/subscription/plans';
+    document.getElementById('secondaryBtn').style.display = 'inline-block';
+    document.getElementById('actions').style.display  = 'block';
+}
+
+async function processPayment() {
+    document.getElementById('steps').classList.add('show');
+
+    // Case 1: Came back from Razorpay with payment params
+    if (paymentId && signature) {
+        setStep('step1', 'active');
+
+        const body = {
+            subscriptionId:      subId,
+            razorpayPaymentId:   paymentId,
+            razorpayOrderId:     orderId  || '',
+            razorpaySignature:   signature,
+            paymentMethod:       'Razorpay'
+        };
+
+        try {
+            const res  = await fetch('/api/subscriptions/payment/success', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+                credentials: 'include'
+            });
+            const data = await res.json();
+
+            setStep('step1', data.success ? 'done' : 'error');
+
+            if (data.success) {
+                setStep('step2', 'done');
+                setStep('step3', 'done');
+                showSuccess(`${planName} activated! Your account is now active.`);
+            } else {
+                setStep('step2', 'error');
+                showError(data.message || 'Payment verification failed. Please contact support.');
+                // Record failure
+                if (subId) {
+                    await fetch('/api/subscriptions/payment/failure', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subscriptionId: subId, reason: data.message })
+                    });
+                }
+            }
+        } catch (e) {
+            setStep('step1', 'error');
+            showError('Network error. Please contact support with your payment ID: ' + paymentId);
+        }
+
+    // Case 2: Came back from Razorpay payment link (no params — payment link flow)
+    // In this case Razorpay webhook will handle activation, just show success
+    } else if (subId) {
+        setStep('step1', 'done');
+        setStep('step2', 'active');
+        document.getElementById('statusMsg').textContent =
+            'Payment received. Activation may take a moment via webhook.';
+        setTimeout(() => {
+            setStep('step2', 'done');
+            setStep('step3', 'done');
+            showSuccess('Payment received! Your subscription will activate shortly.');
+        }, 2000);
+
+    // Case 3: Landed here directly with no context
+    } else {
+        document.getElementById('steps').classList.remove('show');
+        showError('No payment information found. Please contact support if you completed a payment.');
+    }
+}
+
+processPayment();
+</script>
+</body>
+</html>

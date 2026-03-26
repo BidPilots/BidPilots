@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeM Bid Scraping Dashboard - Government e-Marketplace</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f4f4f4;
+            color: #333;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .topStrip {
+            background: #000;
+            color: #fff;
+            padding: 5px 0;
+        }
+        
+        .topStrip a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        .inline-menu {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .inline-menu li {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .select-style {
+            width: 80px;
+        }
+        
+        .select-style select {
+            background: transparent;
+            color: #fff;
+            border: none;
+            padding: 3px;
+        }
+        
+        .select-style select option {
+            background: #000;
+        }
+        
+        .font-size-left span {
+            margin-right: 5px;
+        }
+        
+        .font-size-left a {
+            margin: 0 2px;
+            padding: 0 2px;
+            cursor: pointer;
+        }
+        
+        .fdn i {
+            margin-right: 5px;
+        }
+        
+        .dropdown-top {
+            background: #000;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .dropdown-top li a {
+            color: #fff !important;
+            padding: 8px 15px;
+        }
+        
+        .dropdown-top li a:hover {
+            background: #333;
+        }
+        
+        .top-logo-black {
+            background: #0F5E8B;
+            padding: 10px 0;
+        }
+        
+        .navbar-brand {
+            padding: 0;
+            margin: 0;
+            height: auto;
+        }
+        
+        .navbar-brand img {
+            width: 180px;
+        }
+        
+        .new-nov {
+            background: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .bid-nov-set {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .bid-nov-set li {
+            display: inline-block;
+            padding: 10px 15px;
+        }
+        
+        .bid-nov-set li a {
+            color: #333;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        
+        .new-on-gem {
+            padding: 10px 0;
+            text-align: right;
+        }
+        
+        .new-on-gem ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .new-on-gem li {
+            display: inline-block;
+            margin-left: 15px;
+        }
+        
+        .new-on-gem li a {
+            color: #333;
+            text-decoration: none;
+        }
+        
+        .container {
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+            margin-right: auto;
+            margin-left: auto;
+            max-width: 1400px;
+        }
+        
+        .page_title {
+            font-size: 1.4em;
+            color: #0F5E8B;
+            font-weight: 500;
+        }
+        
+        #old_bid_dash a {
+            color: #0F5E8B;
+            text-decoration: none;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .input-group {
+            position: relative;
+            display: table;
+            border-collapse: separate;
+        }
+        
+        .input-group-btn {
+            position: relative;
+            font-size: 0;
+            white-space: nowrap;
+        }
+        
+        .input-group-btn:first-child > .btn {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        
+        .btn-default {
+            background-color: #0f5e8b;
+            border-color: #ccc;
+            color: white;
+            height: 34px;
+        }
+        
+        .searchtype {
+            background: #ddd;
+            color: #333;
+        }
+        
+        .filterError {
+            color: red;
+            font-size: 0.7em;
+            position: absolute;
+        }
+        
+        .custom-alert-css {
+            margin-top: 20px !important;
+            margin-bottom: 0px !important;
+            text-align: center;
+            background-color: #d9edf7;
+            border-color: #bce8f1;
+            color: #31708f;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .sidefilter {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .filterhead {
+            color: #0F5E8B;
+            font-size: 1.5em;
+            float: left;
+            margin: 0;
+        }
+        
+        .sidefilter hr {
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #0F5E8B;
+        }
+        
+        .sidefilter h4 {
+            font-size: 1em;
+            color: #0F5E8B;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .sidefilter h5 {
+            color: #0F5E8B;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        
+        .checkbox label {
+            font-size: 12px;
+            font-weight: normal;
+        }
+        
+        .filtermargin {
+            margin-top: 15px;
+        }
+        
+        .datepicker {
+            height: 30px;
+            font-size: 12px;
+        }
+        
+        .input-group-addon {
+            background: #0F5E8B;
+            color: #fff;
+            border: none;
+        }
+        
+        .bids {
+            padding-left: 25px;
+        }
+        
+        .card {
+            box-shadow: 0 1px 5px #ccc;
+            border-top: 3px solid #fbb203;
+            margin-bottom: 20px;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.3;
+            background: #fff;
+            border-radius: 0;
+        }
+        
+        .block_header {
+            overflow: hidden;
+            padding: 0;
+            margin-bottom: 0;
+        }
+        
+        .bid_no {
+            background: #fff;
+            color: #0F5E8B;
+            padding: 5px;
+            font-weight: bold;
+            float: left;
+            margin: 0 5px 0 0;
+        }
+        
+        .bid_title {
+            color: #000;
+        }
+        
+        .bid_no_hover {
+            color: #0F5E8B;
+            text-decoration: none;
+        }
+        
+        .bid_no_hover:hover {
+            text-decoration: underline;
+        }
+        
+        .otherDetails {
+            margin-right: 10px;
+            cursor: pointer;
+            float: right;
+            color: #0F5E8B;
+        }
+        
+        .otherDetails a {
+            color: #0F5E8B;
+            text-decoration: none;
+        }
+        
+        .card-body {
+            padding: 15px 15px 5px 15px;
+            line-height: 20px;
+        }
+        
+        .start_date {
+            color: #0ba10b;
+            font-weight: 500;
+        }
+        
+        .end_date {
+            color: #e1950b;
+            font-weight: 500;
+        }
+        
+        .ra-badge {
+            background: #f0ad4e;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        .bid-only-badge {
+            background: #5bc0de;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        .state-badge {
+            background: #5cb85c;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .city-badge {
+            background: #5bc0de;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .prebid-badge {
+            background: #f39c12;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .prebid-info {
+            background: #fcf8e3;
+            border-left: 3px solid #f39c12;
+            padding: 8px;
+            margin-top: 10px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .prebid-info strong {
+            color: #e67e22;
+        }
+        
+        .pdf-link {
+            display: inline-block;
+            background: #d9534f;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 3px;
+            text-decoration: none;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        
+        .pdf-link:hover {
+            background: #c9302c;
+            color: #fff;
+            text-decoration: none;
+        }
+        
+        .pdf-link i {
+            margin-right: 3px;
+        }
+        
+        .pagination2 {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .pagination2 span {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #0F5E8B;
+            cursor: pointer;
+        }
+        
+        .pagination2 .current {
+            background: #0F5E8B;
+            color: #fff;
+            border-color: #0F5E8B;
+        }
+        
+        .totalRecord {
+            color: #0F5E8B;
+            font-size: 13px;
+            padding: 10px 0;
+        }
+        
+        .sort {
+            float: right;
+            margin: 10px 0;
+        }
+        
+        .sort_button {
+            background: #ddd;
+            color: #333;
+            border: none;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .dropdown-menu {
+            min-width: 180px;
+            padding: 0;
+        }
+        
+        .dropdown-menu li {
+            border-bottom: 1px solid #ececec;
+        }
+        
+        .dropdown-menu li a {
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .dropdown-menu li a:hover {
+            background: #0F5E8B;
+            color: #fff;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #5cb85c;
+            color: #fff;
+        }
+        
+        .status-closed {
+            background: #d9534f;
+            color: #fff;
+        }
+        
+        .status-pending {
+            background: #f0ad4e;
+            color: #fff;
+        }
+        
+        .status-completed {
+            background: #5bc0de;
+            color: #fff;
+        }
+        
+        .status-failed {
+            background: #d9534f;
+            color: #fff;
+        }
+        
+        .row-flex {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .pos-bottom {
+            position: relative;
+            bottom: 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .loading img {
+            width: 50px;
+        }
+        
+        .stats-card {
+            background: #fff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 3px solid #fbb203;
+        }
+        
+        .stats-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stats-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0F5E8B;
+        }
+        
+        .stats-card .label {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .btn-action {
+            background: #0F5E8B;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .btn-action:hover {
+            background: #0a4a6e;
+        }
+        
+        .btn-action.danger {
+            background: #d9534f;
+        }
+        
+        .btn-action.danger:hover {
+            background: #c9302c;
+        }
+        
+        .btn-action.success {
+            background: #5cb85c;
+        }
+        
+        .btn-action.success:hover {
+            background: #4cae4c;
+        }
+        
+        .btn-action.warning {
+            background: #f0ad4e;
+        }
+        
+        .btn-action.warning:hover {
+            background: #ec971f;
+        }
+        
+        .btn-action.production {
+            background: #9b59b6;
+        }
+        
+        .btn-action.production:hover {
+            background: #8e44ad;
+        }
+        
+        .btn-action.location {
+            background: #3498db;
+        }
+        
+        .btn-action.location:hover {
+            background: #2980b9;
+        }
+        
+        .btn-action.extract {
+            background: #e67e22;
+        }
+        
+        .btn-action.extract:hover {
+            background: #d35400;
+        }
+        
+        .progress {
+            height: 30px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .progress-bar {
+            float: left;
+            width: 0%;
+            height: 100%;
+            font-size: 12px;
+            line-height: 30px;
+            color: #fff;
+            text-align: center;
+            background-color: #5cb85c;
+            box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+            transition: width 0.6s ease;
+        }
+        
+        .progress-bar-striped {
+            background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
+            background-size: 40px 40px;
+        }
+        
+        .progress-bar.active {
+            animation: progress-bar-stripes 2s linear infinite;
+        }
+        
+        @keyframes progress-bar-stripes {
+            from { background-position: 40px 0; }
+            to { background-position: 0 0; }
+        }
+        
+        .progress-info {
+            background: #fff;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 3px solid #5bc0de;
+        }
+        
+        .progress-info h4 {
+            color: #0F5E8B;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .progress-stats {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .progress-stat-item {
+            flex: 1;
+            min-width: 120px;
+            margin-bottom: 10px;
+        }
+        
+        .progress-stat-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+        }
+        
+        .progress-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .location-filter-section {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .location-filter-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0F5E8B;
+        }
+        
+        .location-select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .pages-input {
+            width: 100px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .btn-location {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .btn-location:hover {
+            background: #2980b9;
+        }
+        
+        .extraction-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .extraction-completed {
+            background: #5cb85c;
+            color: #fff;
+        }
+        
+        .extraction-pending {
+            background: #f0ad4e;
+            color: #fff;
+        }
+        
+        .extraction-failed {
+            background: #d9534f;
+            color: #fff;
+        }
+        
+        .finalized-badge {
+            background: #7f8c8d;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        .unchanged-badge {
+            background: #95a5a6;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        @media (max-width: 1000px) {
+            .sidefilter {
+                display: none;
+            }
+            .bids {
+                padding-left: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<section class="topStrip">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="inline-menu">
+                    <li>
+                        <div class="select-style">
+                            <select id="languageChange">
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </li>
+                    <li><a href="#" id="darkModeToggle"><i class="fa fa-circle"></i> Dark Mode</a></li>
+                    <li class="font-size-left">
+                        <span>Font Size</span>
+                        <a href="#" class="fm">A-</a>
+                        <a href="#" class="fd">A</a>
+                        <a href="#" class="fp">A+</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6 text-right">
+                <ul class="inline-menu">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Need Help? <span class="caret"></span></a>
+                        <ul class="dropdown-menu dropdown-top">
+                            <li><a href="#">FAQs</a></li>
+                            <li><a href="#">Feedback</a></li>
+                            <li><a href="#">Raise a Ticket</a></li>
+                            <li><a href="#">Contact Us</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="top-logo-black">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-2">
+                <a class="navbar-brand" href="#">
+                    <img src="https://bidplus.gem.gov.in/resources/images/gem-new-logo-v4.svg" alt="GeM Logo">
+                </a>
+            </div>
+            <div class="col-md-6">
+                <div class="radio radio-button" id="divSearchCat">
+                    <label class="active-search">Products</label>
+                    <label>Services</label>
+                    <label>Content</label>
+                </div>
+                <div class="s003">
+                    <div class="inner-form">
+                        <div class="input-field second-wrap">
+                            <input type="text" id="searchInput" placeholder="Looking for something on GeM?">
+                        </div>
+                        <div class="input-field third-wrap">
+                            <button class="btn-search" id="searchBtn">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-right">
+                    <a href="#" class="btn-nov1" style="color: #fff; margin-right: 15px;">Login</a>
+                    <div class="btn-group">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" style="color: #fff;">
+                            Sign Up <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Buyers</a></li>
+                            <li><a href="#">Sellers</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="new-nov">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10">
+                <ul class="bid-nov-set">
+                    <li><a href="#">GeM Advantages</a></li>
+                    <li><a href="#">GeM Exclusive</a></li>
+                    <li><a href="#">FAQs</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Rate a Seller</a></li>
+                </ul>
+            </div>
+            <div class="col-md-2">
+                <div class="new-on-gem">
+                    <ul>
+                        <li><a href="#"><img src="https://bidplus.gem.gov.in/resources/images/new-on.png"> New on GeM</a></li>
+                        <li><a href="#"><i class="fa fa-bell-o"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    
+    <div class="row" style="margin: 20px 0;">
+        <div class="col-md-12">
+            <!-- State/City Extraction - One Time Setup -->
+            <button class="btn-action extract" onclick="extractStatesAndCities()">
+                <i class="fa fa-map-marker"></i> STEP 1: Extract States & Cities (Run Once)
+            </button>
+            <button class="btn-action" onclick="checkStatesStatus()">
+                <i class="fa fa-info-circle"></i> Check States Status
+            </button>
+            
+            <!-- Location-based Scraping -->
+            <button class="btn-action location" onclick="showLocationScraper()">
+                <i class="fa fa-filter"></i> Location-Based Scraping
+            </button>
+            
+            <!-- Full Scraping -->
+            <button class="btn-action production" onclick="scrapeProductionMode()">
+                <i class="fa fa-globe"></i> Scrape All States & Cities
+            </button>
+            
+            <!-- Progress & Stats -->
+            <button class="btn-action" onclick="checkProgress()">
+                <i class="fa fa-tachometer"></i> Check Progress
+            </button>
+            <button class="btn-action" onclick="loadStats()">
+                <i class="fa fa-refresh"></i> Refresh Stats
+            </button>
+            
+            <!-- Data Management -->
+            <button class="btn-action" onclick="loadAllBids()">
+                <i class="fa fa-list"></i> Load All Bids
+            </button>
+            <button class="btn-action" onclick="loadNonFinalizedBids()">
+                <i class="fa fa-check-circle-o"></i> Non-Finalized
+            </button>
+            <button class="btn-action" onclick="loadFinalizedBids()">
+                <i class="fa fa-archive"></i> Finalized
+            </button>
+            <button class="btn-action" onclick="loadActiveBids()">
+                <i class="fa fa-check-circle"></i> Active
+            </button>
+            <button class="btn-action" onclick="loadBidDetails()">
+                <i class="fa fa-file-pdf-o"></i> Pre-Bid Details
+            </button>
+            <button class="btn-action danger" onclick="clearAllBids()">
+                <i class="fa fa-trash"></i> Clear All Bids
+            </button>
+            <button class="btn-action danger" onclick="clearStatesAndCities()">
+                <i class="fa fa-eraser"></i> Clear States/Cities
+            </button>
+            <button class="btn-action" onclick="healthCheck()">
+                <i class="fa fa-heartbeat"></i> Health Check
+            </button>
+        </div>
+    </div>
+    
+    <!-- Location-based Scraper Panel (Hidden by default) -->
+    <div class="row" id="locationScraperPanel" style="display: none; margin-bottom: 20px;">
+        <div class="col-md-12">
+            <div class="location-filter-section">
+                <div class="location-filter-title">
+                    <i class="fa fa-map-marker"></i> Location-Based Scraping
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <select id="stateSelect" class="location-select" onchange="loadCities()">
+                            <option value="">-- Select State --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="citySelect" class="location-select" disabled>
+                            <option value="">-- Select City --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" id="pagesInput" class="pages-input" value="3" min="1" max="10" placeholder="Pages">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-location" onclick="scrapeByLocation()">
+                            <i class="fa fa-play"></i> Start Scraping
+                        </button>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col-md-12">
+                        <small class="text-muted">
+                            <i class="fa fa-info-circle"></i> Only non-finalized bids are checked. Duplicates are skipped if data hasn't changed.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="statsSection" style="display: none;">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>Total Bids</h3>
+                <div class="number" id="totalBids">0</div>
+                <div class="label">All bids in database</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>Active Bids</h3>
+                <div class="number" id="activeBids">0</div>
+                <div class="label">Ongoing bids</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>States</h3>
+                <div class="number" id="statesCount">0</div>
+                <div class="label">Total states</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>Cities</h3>
+                <div class="number" id="citiesCount">0</div>
+                <div class="label">Total cities</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="finalizedStatsSection" style="display: none; margin-top: 10px;">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>Non-Finalized Bids</h3>
+                <div class="number" id="nonFinalizedBids">0</div>
+                <div class="label">Active for scraping</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>Finalized Bids</h3>
+                <div class="number" id="finalizedBids">0</div>
+                <div class="label">Archived (>3 days old)</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>Extraction Rate</h3>
+                <div class="number" id="extractionRate">0%</div>
+                <div class="label">PDF success rate</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="extractionStatsSection" style="display: none; margin-top: 10px;">
+        <div class="col-md-12">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title">PDF Extraction Status</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Completed:</strong> <span id="completedExtractions" class="text-success">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Pending:</strong> <span id="pendingExtractions" class="text-warning">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Processing:</strong> <span id="processingExtractions" class="text-info">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Failed:</strong> <span id="failedExtractions" class="text-danger">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="statesStatusSection" style="display: none;">
+        <div class="col-md-12">
+            <div class="alert alert-info" id="statesStatusAlert">
+                <h4><i class="fa fa-info-circle"></i> States Status</h4>
+                <p id="statesStatusMessage">Checking states status...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="progressSection" style="display: none;">
+        <div class="col-md-12">
+            <div class="progress-info" id="progressInfo">
+                <h4><i class="fa fa-spinner fa-spin"></i> Scraping in Progress</h4>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-success progress-bar-striped active" 
+                         id="progressBar" 
+                         role="progressbar" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100"
+                         style="width: 0%">
+                        0%
+                    </div>
+                </div>
+                <div class="progress-stats">
+                    <div class="progress-stat-item">
+                        <div class="progress-stat-label">Status</div>
+                        <div class="progress-stat-value" id="progressStatus">Initializing...</div>
+                    </div>
+                    <div class="progress-stat-item">
+                        <div class="progress-stat-label">Progress</div>
+                        <div class="progress-stat-value" id="progressPercentage">0%</div>
+                    </div>
+                    <div class="progress-stat-item">
+                        <div class="progress-stat-label">New/Updated</div>
+                        <div class="progress-stat-value" id="progressNewUpdated">0/0</div>
+                    </div>
+                    <div class="progress-stat-item">
+                        <div class="progress-stat-label">Unchanged</div>
+                        <div class="progress-stat-value" id="progressUnchanged">0</div>
+                    </div>
+                    <div class="progress-stat-item">
+                        <div class="progress-stat-label">Total in DB</div>
+                        <div class="progress-stat-value" id="progressTotalDb">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row search" style="margin-top: 20px;">
+        <div class="col-md-7">
+            <span class="page_title">Bid Listing with Pre-Bid Details</span>
+            <span id="old_bid_dash">
+                <a href="#"><i class="fa fa-external-link"></i> Advance Search</a>
+            </span>
+        </div>
+        <div class="col-md-5">
+            <div class="pull-left" data-toggle="popover" style="margin-right: 10px;">
+                <i class="fa fa-info-circle"></i>
+            </div>
+            <div class="input-group">
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-default dropdown-toggle searchtype" data-toggle="dropdown">
+                        <span id="search_concept">Exact Search</span> <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a onclick="setSearchType('fullText')">Contains</a></li>
+                        <li><a onclick="setSearchType('exact')">Exact Search</a></li>
+                    </ul>
+                </div>
+                <input type="search" class="form-control" id="searchBid" placeholder="Enter Keyword" autocomplete="off">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" id="searchBidBtn" type="button">
+                        <span class="glyphicon glyphicon-search"></span>
+                    </button>
+                </span>
+            </div>
+            <span class="filterError" id="searchError"></span>
+        </div>
+    </div>
+    
+    <div class="alert alert-info custom-alert-css">
+        <i class="fa fa-info-circle"></i> Pre-bid information is extracted from PDFs. Duplicate bids are skipped if data hasn't changed.
+    </div>
+    
+    <div class="row">
+        <div class="col-md-2 sidefilter">
+            <h3 class="filterhead"><i class="fa fa-filter"></i> Filters</h3>
+            <button class="btn btn-link btn-sm pull-right" onclick="clearFilters()">Reset</button>
+            <div class="clearfix"></div>
+            <hr>
+            
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="ongoing_bids" onclick="filterByStatus('ongoing')" checked> 
+                    Ongoing Bids/RA
+                </label>
+            </div>
+            
+            <div class="filtermargin"></div>
+            
+            <h4>By Bid Type:</h4>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="all" onclick="filterByType('all')" checked> 
+                    All Bid/RAs
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="bidOnly" onclick="filterByType('bidOnly')"> 
+                    Bid Only
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="bidToRA" onclick="filterByType('bidToRA')"> 
+                    Bid to RA
+                </label>
+            </div>
+            
+            <div class="filtermargin"></div>
+            
+            <h4>By Status:</h4>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="active" onclick="filterByActive('active')"> 
+                    Active
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="closed" onclick="filterByActive('closed')"> 
+                    Closed
+                </label>
+            </div>
+            
+            <div class="filtermargin"></div>
+            
+            <h4>By Finalization:</h4>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="nonFinalized" onclick="filterByFinalized('nonFinalized')"> 
+                    Non-Finalized
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="finalized" onclick="filterByFinalized('finalized')"> 
+                    Finalized
+                </label>
+            </div>
+            
+            <div class="filtermargin"></div>
+            
+            <h4>By Pre-Bid:</h4>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="withPrebid" onclick="filterByPrebid('with')"> 
+                    With Pre-Bid Info
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="withoutPrebid" onclick="filterByPrebid('without')"> 
+                    Without Pre-Bid
+                </label>
+            </div>
+            
+            <div class="filtermargin"></div>
+            
+            <h5>Bid End Date (From):</h5>
+            <div class="input-group date">
+                <input type="date" id="fromDate" class="form-control datepicker" onchange="filterByDate()">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+            </div>
+            <p class="filterError" id="fromDateError"></p>
+            
+            <h5>Bid End Date (To):</h5>
+            <div class="input-group date">
+                <input type="date" id="toDate" class="form-control datepicker" onchange="filterByDate()">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+            </div>
+            <p class="filterError" id="toDateError"></p>
+        </div>
+        
+        <div class="col-md-10 bids" id="bidContainer">
+            <div class="row row-flex" id="bidsHeader" style="display: none;">
+                <div class="col-md-6 totalRecord">
+                    <span class="pos-bottom" id="recordInfo">Showing 0 records</span>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown sort">
+                        Sort by:&nbsp;
+                        <button class="btn dropdown-toggle sort_button" type="button" id="sortDropdown" data-toggle="dropdown">
+                            Bid End Date: Latest First <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a onclick="sort('Bid-Start-Date-Latest')">Bid Start Date: Latest First</a></li>
+                            <li><a onclick="sort('Bid-Start-Date-Oldest')">Bid Start Date: Oldest First</a></li>
+                            <li><a onclick="sort('Bid-End-Date-Latest')">Bid End Date: Latest First</a></li>
+                            <li><a onclick="sort('Bid-End-Date-Oldest')">Bid End Date: Oldest First</a></li>
+                            <li><a onclick="sort('PreBid-Date')">Pre-Bid Date</a></li>
+                            <li><a onclick="sort('State-Name')">State Name</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <img src="https://bidplus.gem.gov.in/resources/images/gemloader.gif" alt="Loading...">
+                <p>Loading bids...</p>
+            </div>
+            
+            <div id="bidsList"></div>
+            
+            <div id="pagination" class="pagination2" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+<script>
+    // Base URLs for different endpoints
+    const baseUrl = 'http://localhost:8080/api';
+    const scrapeBaseUrl = baseUrl + '/scrape';
+    const statesCitiesBaseUrl = baseUrl + '/states-cities';
+    
+    let currentBids = [];
+    let currentBidDetails = {};
+    let filteredBids = [];
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    let currentFilter = 'all';
+    let currentStatus = 'ongoing';
+    let currentFinalized = 'all';
+    let currentSort = 'Bid-End-Date-Latest';
+    let searchType = 'exact';
+    let searchKeyword = '';
+    let fromDate = '';
+    let toDate = '';
+    let progressInterval = null;
+    let prebidFilterType = 'all';
+
+    $(document).ready(function() {
+        healthCheck();
+        loadStats();
+        checkStatesStatus();
+        loadAllBids();
+        loadStates();
+        
+        $('#searchBid').keypress(function(e) {
+            if(e.which == 13) {
+                $('#searchBidBtn').click();
+            }
+        });
+        
+        $('#searchBidBtn').click(function() {
+            searchKeyword = $('#searchBid').val();
+            if(searchKeyword.length < 3 && searchKeyword.length > 0) {
+                $('#searchError').html('Please enter atleast 3 characters');
+                return;
+            }
+            $('#searchError').html('');
+            currentPage = 1;
+            applyFilters();
+        });
+        
+        $('.fm').click(function(e) {
+            e.preventDefault();
+            var size = parseInt($('body').css('font-size'));
+            if(size > 12) {
+                $('body').css('font-size', (size - 1) + 'px');
+            }
+        });
+        
+        $('.fp').click(function(e) {
+            e.preventDefault();
+            var size = parseInt($('body').css('font-size'));
+            if(size < 18) {
+                $('body').css('font-size', (size + 1) + 'px');
+            }
+        });
+        
+        $('.fd').click(function(e) {
+            e.preventDefault();
+            $('body').css('font-size', '14px');
+        });
+        
+        $('#darkModeToggle').click(function(e) {
+            e.preventDefault();
+            $('body').toggleClass('dark-mode');
+            if($('body').hasClass('dark-mode')) {
+                $(this).find('i').css('color', '#fbb203');
+            } else {
+                $(this).find('i').css('color', '');
+            }
+        });
+    });
+
+    // ==================== HEALTH CHECK ====================
+    function healthCheck() {
+        $.ajax({
+            url: scrapeBaseUrl + '/health',
+            method: 'GET',
+            success: function(data) {
+                console.log('✅ Connected to server - ' + data.status);
+                updateExtractionRate();
+            },
+            error: function() {
+                alert('❌ Cannot connect to server. Make sure the application is running on port 8080');
+            }
+        });
+    }
+
+    // ==================== LOCATION-BASED SCRAPING ====================
+    function showLocationScraper() {
+        $('#locationScraperPanel').slideToggle();
+        loadStates();
+    }
+
+    function loadStates() {
+        $.ajax({
+            url: scrapeBaseUrl + '/states',
+            method: 'GET',
+            success: function(data) {
+                if(data.success && data.states) {
+                    let options = '<option value="">-- Select State --</option>';
+                    data.states.forEach(state => {
+                        options += `<option value="${state.id}">${state.name} (${state.cityCount} cities)</option>`;
+                    });
+                    $('#stateSelect').html(options);
+                }
+            },
+            error: function() {
+                console.log('Could not load states');
+            }
+        });
+    }
+
+    function loadCities() {
+        let stateId = $('#stateSelect').val();
+        if(!stateId) {
+            $('#citySelect').html('<option value="">-- Select City --</option>').prop('disabled', true);
+            return;
+        }
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/cities/' + stateId,
+            method: 'GET',
+            success: function(data) {
+                if(data.success && data.cities) {
+                    let options = '<option value="">-- Select City --</option>';
+                    data.cities.forEach(city => {
+                        options += `<option value="${city.id}">${city.name}</option>`;
+                    });
+                    $('#citySelect').html(options).prop('disabled', false);
+                }
+            },
+            error: function() {
+                console.log('Could not load cities');
+            }
+        });
+    }
+
+    function scrapeByLocation() {
+        let stateId = $('#stateSelect').val();
+        let cityId = $('#citySelect').val();
+        let pages = $('#pagesInput').val();
+        
+        if(!stateId || !cityId) {
+            alert('Please select both state and city');
+            return;
+        }
+        
+        if(!confirm(`🔍 This will scrape up to ${pages} pages for the selected location. Continue?`)) return;
+        
+        showLoading(true);
+        $('#bidsList').html(`
+            <div class="alert alert-info">
+                <h4><i class="fa fa-spinner fa-spin"></i> Starting Location-Based Scraping...</h4>
+                <p>Scraping up to ${pages} pages. Progress will update automatically.</p>
+            </div>
+        `);
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids/by-location',
+            method: 'POST',
+            data: {
+                stateId: stateId,
+                cityId: cityId,
+                maxPages: pages
+            },
+            success: function(data) {
+                if(data.success) {
+                    showLoading(false);
+                    $('#bidsList').html(`
+                        <div class="alert alert-success">
+                            <h4><i class="fa fa-check-circle"></i> Scraping Completed!</h4>
+                            <p><strong>Location:</strong> ${data.state} - ${data.city}</p>
+                            <p><strong>New Bids:</strong> ${data.newBids}</p>
+                            <p><strong>Updated Bids:</strong> ${data.updatedBids}</p>
+                            <p><strong>Unchanged Bids:</strong> ${data.unchangedBids || 0}</p>
+                            <p><strong>Reactivated Bids:</strong> ${data.reactivatedBids || 0}</p>
+                            <p><strong>Failed Bids:</strong> ${data.failedBids || 0}</p>
+                            <p><strong>Time:</strong> ${data.timeTakenSeconds} seconds</p>
+                        </div>
+                    `);
+                    loadStats();
+                    loadAllBids();
+                    loadBidDetails();
+                } else {
+                    $('#bidsList').html(`
+                        <div class="alert alert-warning">
+                            <h4><i class="fa fa-exclamation-triangle"></i> Cannot Start Scraping</h4>
+                            <p>${data.message}</p>
+                        </div>
+                    `);
+                    showLoading(false);
+                }
+            },
+            error: function(xhr) {
+                showLoading(false);
+                $('#bidsList').html(`
+                    <div class="alert alert-danger">
+                        <h4><i class="fa fa-exclamation-circle"></i> Error</h4>
+                        <p>${xhr.responseJSON?.message || 'Unknown error'}</p>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    // ==================== STATE/CITY EXTRACTION ====================
+    function extractStatesAndCities() {
+        if(!confirm('🗺️ This will extract ALL states and cities from GeM portal. This is a ONE-TIME setup. Continue?')) return;
+        
+        showLoading(true);
+        $('#bidsList').html(`
+            <div class="alert alert-info">
+                <h4><i class="fa fa-spinner fa-spin"></i> Extracting States and Cities...</h4>
+                <p>This process may take 5-10 minutes. Please wait...</p>
+                <p>Progress will be shown in the server logs.</p>
+            </div>
+        `);
+        
+        $.ajax({
+            url: statesCitiesBaseUrl + '/extract',
+            method: 'POST',
+            success: function(data) {
+                showLoading(false);
+                if(data.success) {
+                    let detailsHtml = '<ul>';
+                    if(data.stateDetails) {
+                        Object.entries(data.stateDetails).forEach(([state, count]) => {
+                            detailsHtml += `<li><strong>${state}:</strong> ${count} cities</li>`;
+                        });
+                        detailsHtml += '</ul>';
+                    }
+                    
+                    $('#bidsList').html(`
+                        <div class="alert alert-success">
+                            <h4><i class="fa fa-check-circle"></i> States & Cities Extracted Successfully!</h4>
+                            <p><strong>Total States:</strong> ${data.totalStates}</p>
+                            <p><strong>Total Cities:</strong> ${data.totalCities}</p>
+                            <p><strong>Time Taken:</strong> ${data.timeTakenSeconds} seconds</p>
+                            ${detailsHtml}
+                            <p>You can now proceed with scraping.</p>
+                        </div>
+                    `);
+                    loadStats();
+                    checkStatesStatus();
+                    loadStates();
+                } else {
+                    $('#bidsList').html(`
+                        <div class="alert alert-warning">
+                            <h4><i class="fa fa-exclamation-triangle"></i> ${data.message || 'Extraction Failed'}</h4>
+                            <p>${data.error || ''}</p>
+                            <p>Total States already in database: ${data.totalStates || 0}</p>
+                            <p>Total Cities already in database: ${data.totalCities || 0}</p>
+                        </div>
+                    `);
+                }
+            },
+            error: function(xhr) {
+                showLoading(false);
+                $('#bidsList').html(`
+                    <div class="alert alert-danger">
+                        <h4><i class="fa fa-exclamation-circle"></i> Error</h4>
+                        <p>${xhr.responseJSON?.message || xhr.responseText || 'Unknown error'}</p>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    function checkStatesStatus() {
+        $.ajax({
+            url: statesCitiesBaseUrl + '/status',
+            method: 'GET',
+            success: function(data) {
+                if(data.success) {
+                    let statusHtml = '';
+                    if(data.statesPopulated) {
+                        let detailsHtml = '';
+                        if(data.stateDetails) {
+                            detailsHtml = '<ul>';
+                            data.stateDetails.forEach(state => {
+                                detailsHtml += `<li><strong>${state.name}:</strong> ${state.cityCount} cities</li>`;
+                            });
+                            detailsHtml += '</ul>';
+                        }
+                        
+                        statusHtml = `
+                            <div class="alert alert-success">
+                                <h4><i class="fa fa-check-circle"></i> States & Cities are Populated</h4>
+                                <p><strong>Total States:</strong> ${data.totalStates} | <strong>Total Cities:</strong> ${data.totalCities}</p>
+                                ${detailsHtml}
+                                <p>You can now proceed with scraping.</p>
+                            </div>
+                        `;
+                    } else {
+                        statusHtml = `
+                            <div class="alert alert-warning">
+                                <h4><i class="fa fa-exclamation-triangle"></i> States & Cities NOT Populated</h4>
+                                <p>Please click the <strong>"Extract States & Cities"</strong> button first to populate states and cities.</p>
+                                <p>This is a one-time setup required before scraping.</p>
+                            </div>
+                        `;
+                    }
+                    $('#statesStatusAlert').html(statusHtml);
+                    $('#statesStatusSection').show();
+                }
+            },
+            error: function() {
+                $('#statesStatusSection').hide();
+            }
+        });
+    }
+
+    function clearStatesAndCities() {
+        if(!confirm('⚠️ Are you sure you want to delete ALL states and cities? This will only work if no bids exist. Continue?')) return;
+        
+        $.ajax({
+            url: statesCitiesBaseUrl + '/clear',
+            method: 'DELETE',
+            success: function(data) {
+                if(data.success) {
+                    alert('✅ ' + data.message);
+                    loadStats();
+                    checkStatesStatus();
+                    loadStates();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            },
+            error: function() {
+                alert('❌ Error clearing states/cities');
+            }
+        });
+    }
+
+    // ==================== SCRAPING ====================
+    function scrapeProductionMode() {
+        checkStatesStatusFirst(() => {
+            if(!confirm('🏭 This will scrape ALL states and cities. This may take several hours. Continue?')) return;
+            
+            showLoading(true);
+            $('#bidsList').html(`
+                <div class="alert alert-warning">
+                    <h4><i class="fa fa-industry"></i> Production Scraping Started</h4>
+                    <p>Scraping ALL states and cities. This may take several hours.</p>
+                    <p>Check progress using the "Check Progress" button.</p>
+                    <p>Duplicate bids will be skipped if data hasn't changed.</p>
+                </div>
+            `);
+            
+            $.ajax({
+                url: scrapeBaseUrl + '/production',
+                method: 'POST',
+                success: function(data) {
+                    if(data.success) {
+                        showLoading(false);
+                        $('#progressSection').show();
+                        startProgressPolling();
+                        showNotification('Production scraping started! Check progress.', 'success');
+                    } else {
+                        $('#bidsList').html(`
+                            <div class="alert alert-warning">
+                                <h4><i class="fa fa-exclamation-triangle"></i> Cannot Start Scraping</h4>
+                                <p>${data.message}</p>
+                            </div>
+                        `);
+                        showLoading(false);
+                    }
+                },
+                error: function(xhr) {
+                    showLoading(false);
+                    $('#bidsList').html(`
+                        <div class="alert alert-danger">
+                            <h4><i class="fa fa-exclamation-circle"></i> Error</h4>
+                            <p>${xhr.responseJSON?.message || 'Unknown error'}</p>
+                        </div>
+                    `);
+                }
+            });
+        });
+    }
+
+    function checkStatesStatusFirst(callback) {
+        $.ajax({
+            url: statesCitiesBaseUrl + '/check',
+            method: 'GET',
+            success: function(data) {
+                if(data.success && data.statesPopulated) {
+                    callback();
+                } else {
+                    $('#bidsList').html(`
+                        <div class="alert alert-warning">
+                            <h4><i class="fa fa-exclamation-triangle"></i> States & Cities Not Populated</h4>
+                            <p>Please click the <strong>"Extract States & Cities"</strong> button first to populate states and cities.</p>
+                            <p>This is a one-time setup required before scraping.</p>
+                            <button class="btn btn-warning" onclick="extractStatesAndCities()">Extract States & Cities Now</button>
+                        </div>
+                    `);
+                }
+            },
+            error: function() {
+                alert('Could not check states status');
+            }
+        });
+    }
+
+    function checkProgress() {
+        $.ajax({
+            url: scrapeBaseUrl + '/progress',
+            method: 'GET',
+            success: function(data) {
+                if(data.success) {
+                    updateProgressDisplay(data);
+                    $('#progressSection').show();
+                }
+            }
+        });
+    }
+
+    function startProgressPolling() {
+        if(progressInterval) clearInterval(progressInterval);
+        
+        progressInterval = setInterval(function() {
+            $.ajax({
+                url: scrapeBaseUrl + '/progress',
+                method: 'GET',
+                success: function(data) {
+                    if(data.success) {
+                        updateProgressDisplay(data);
+                        
+                        if(!data.inProgress) {
+                            clearInterval(progressInterval);
+                            progressInterval = null;
+                            $('#progressSection').hide();
+                            loadStats();
+                            loadAllBids();
+                            loadBidDetails();
+                            showNotification('Scraping completed!', 'success');
+                        }
+                    }
+                },
+                error: function() {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+            });
+        }, 2000);
+    }
+
+    function updateProgressDisplay(progress) {
+        let percentComplete = progress.progressPercentage || 0;
+        
+        $('#progressBar').css('width', percentComplete + '%').text(percentComplete + '%');
+        $('#progressPercentage').text(percentComplete + '%');
+        $('#progressStatus').text(progress.status);
+        $('#progressNewUpdated').text(progress.newBids + '/' + progress.updatedBids);
+        $('#progressUnchanged').text(progress.unchangedBids || 0);
+        $('#progressTotalDb').text(progress.totalBidsInDb);
+        
+        if(progress.pendingExtractions !== undefined) {
+            $('#pendingExtractions').text(progress.pendingExtractions);
+            $('#completedExtractions').text(progress.completedExtractions);
+            $('#processingExtractions').text(progress.processingExtractions || 0);
+            $('#failedExtractions').text(progress.failedExtractions);
+        }
+        
+        if(progress.finalizedBids !== undefined) {
+            $('#finalizedBids').text(progress.finalizedBids);
+            $('#nonFinalizedBids').text(progress.nonFinalizedBids);
+        }
+        
+        updateExtractionRate();
+    }
+
+    // ==================== STATS AND DATA LOADING ====================
+    function loadStats() {
+        $.ajax({
+            url: scrapeBaseUrl + '/stats',
+            method: 'GET',
+            success: function(data) {
+                if(data.success) {
+                    $('#totalBids').text(data.totalBids || 0);
+                    $('#activeBids').text(data.activeBids || 0);
+                    $('#statesCount').text(data.totalStates || 0);
+                    $('#citiesCount').text(data.totalCities || 0);
+                    $('#nonFinalizedBids').text(data.nonFinalizedBids || 0);
+                    $('#finalizedBids').text(data.finalizedBids || 0);
+                    $('#statsSection').show();
+                    $('#finalizedStatsSection').show();
+                    
+                    if(data.completedExtractions !== undefined) {
+                        $('#completedExtractions').text(data.completedExtractions || 0);
+                        $('#pendingExtractions').text(data.pendingExtractions || 0);
+                        $('#processingExtractions').text(data.processingExtractions || 0);
+                        $('#failedExtractions').text(data.failedExtractions || 0);
+                        $('#extractionStatsSection').show();
+                    }
+                    
+                    updateExtractionRate();
+                }
+            },
+            error: function() {
+                $('#statsSection').hide();
+                $('#finalizedStatsSection').hide();
+            }
+        });
+    }
+
+    function updateExtractionRate() {
+        let completed = parseInt($('#completedExtractions').text()) || 0;
+        let total = parseInt($('#totalBids').text()) || 0;
+        if(total > 0) {
+            let rate = Math.round((completed * 100) / total);
+            $('#extractionRate').text(rate + '%');
+        }
+    }
+
+    function loadAllBids() {
+        showLoading(true);
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids',
+            method: 'GET',
+            success: function(data) {
+                currentBids = data.bids || [];
+                loadBidDetails();
+            },
+            error: function() {
+                $('#loadingIndicator').hide();
+                $('#bidsList').html('<div class="alert alert-danger">Error loading bids</div>');
+                showLoading(false);
+            }
+        });
+    }
+
+    function loadNonFinalizedBids() {
+        showLoading(true);
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids/non-finalized',
+            method: 'GET',
+            success: function(data) {
+                currentBids = data.bids || [];
+                loadBidDetails();
+            },
+            error: function() {
+                $('#bidsList').html('<div class="alert alert-danger">Error loading non-finalized bids</div>');
+                showLoading(false);
+            }
+        });
+    }
+
+    function loadFinalizedBids() {
+        showLoading(true);
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids/finalized',
+            method: 'GET',
+            success: function(data) {
+                currentBids = data.bids || [];
+                loadBidDetails();
+            },
+            error: function() {
+                $('#bidsList').html('<div class="alert alert-danger">Error loading finalized bids</div>');
+                showLoading(false);
+            }
+        });
+    }
+
+    function loadActiveBids() {
+        showLoading(true);
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids/active',
+            method: 'GET',
+            success: function(data) {
+                currentBids = data.bids || [];
+                loadBidDetails();
+            },
+            error: function() {
+                $('#bidsList').html('<div class="alert alert-danger">Error loading active bids</div>');
+                showLoading(false);
+            }
+        });
+    }
+
+    function loadBidDetails() {
+        $.ajax({
+            url: scrapeBaseUrl + '/bid-details',
+            method: 'GET',
+            success: function(data) {
+                if(data.success && data.details) {
+                    currentBidDetails = {};
+                    data.details.forEach(detail => {
+                        currentBidDetails[detail.bidId] = detail;
+                    });
+                    applyFilters();
+                    showNotification('Loaded pre-bid details for ' + data.count + ' bids', 'success');
+                }
+            },
+            error: function() {
+                console.log('Could not load bid details');
+                showLoading(false);
+            }
+        });
+    }
+
+    function clearAllBids() {
+        if(!confirm('⚠️ Are you sure you want to delete ALL bids? This action cannot be undone!')) return;
+        
+        $.ajax({
+            url: scrapeBaseUrl + '/bids/clear',
+            method: 'DELETE',
+            success: function(data) {
+                alert('✅ ' + data.message);
+                currentBidDetails = {};
+                loadStats();
+                loadAllBids();
+            },
+            error: function() {
+                alert('❌ Error clearing bids');
+            }
+        });
+    }
+
+    // ==================== FILTER FUNCTIONS ====================
+    function setSearchType(type) {
+        searchType = type;
+        $('#search_concept').text(type === 'fullText' ? 'Contains' : 'Exact Search');
+    }
+
+    function filterByStatus(status) {
+        currentStatus = status;
+        if(status === 'ongoing') {
+            filteredBids = currentBids.filter(b => !isBidClosed(b));
+        } else {
+            $('#ongoing_bids').prop('checked', false);
+            filteredBids = currentBids;
+        }
+        currentPage = 1;
+        renderTable();
+    }
+
+    function filterByType(type) {
+        $('#all, #bidOnly, #bidToRA').prop('checked', false);
+        $('#' + (type === 'all' ? 'all' : type === 'bidOnly' ? 'bidOnly' : 'bidToRA')).prop('checked', true);
+        currentFilter = type;
+        applyFilters();
+    }
+
+    function filterByActive(status) {
+        $('#active, #closed').prop('checked', false);
+        $('#' + status).prop('checked', true);
+        
+        if(status === 'active') {
+            filteredBids = currentBids.filter(b => !isBidClosed(b));
+            renderTable();
+        } else if(status === 'closed') {
+            filteredBids = currentBids.filter(b => isBidClosed(b));
+            renderTable();
+        }
+    }
+
+    function filterByFinalized(type) {
+        $('#nonFinalized, #finalized').prop('checked', false);
+        $('#' + (type === 'nonFinalized' ? 'nonFinalized' : 'finalized')).prop('checked', true);
+        currentFinalized = type;
+        applyFilters();
+    }
+
+    function filterByPrebid(type) {
+        $('#withPrebid, #withoutPrebid').prop('checked', false);
+        $('#' + (type === 'with' ? 'withPrebid' : 'withoutPrebid')).prop('checked', true);
+        prebidFilterType = type;
+        applyFilters();
+    }
+
+    function filterByDate() {
+        fromDate = $('#fromDate').val();
+        toDate = $('#toDate').val();
+        
+        if(fromDate && toDate && toDate < fromDate) {
+            $('#toDateError').html('To date must be after from date');
+            return;
+        }
+        $('#toDateError').html('');
+        
+        applyFilters();
+    }
+
+    function clearFilters() {
+        $('#searchBid').val('');
+        $('#ongoing_bids').prop('checked', true);
+        $('#all').prop('checked', true);
+        $('#nonFinalized, #finalized, #withPrebid, #withoutPrebid, #bidOnly, #bidToRA, #active, #closed').prop('checked', false);
+        $('#fromDate, #toDate').val('');
+        searchKeyword = '';
+        currentFilter = 'all';
+        currentStatus = 'ongoing';
+        currentFinalized = 'all';
+        prebidFilterType = 'all';
+        fromDate = '';
+        toDate = '';
+        currentPage = 1;
+        renderTable();
+    }
+
+    function sort(sortBy) {
+        currentSort = sortBy;
+        let displayText = sortBy.replace(/-/g, ' ');
+        if (sortBy === 'PreBid-Date') displayText = 'Pre-Bid Date';
+        $('#sortDropdown').text(displayText + ' ');
+        applyFilters();
+    }
+
+    function applyFilters() {
+        filteredBids = [...currentBids];
+        
+        if(searchKeyword) {
+            filteredBids = filteredBids.filter(b => 
+                (b.bidNumber && b.bidNumber.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (b.items && b.items.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (b.department && b.department.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (b.ministry && b.ministry.toLowerCase().includes(searchKeyword.toLowerCase()))
+            );
+        }
+        
+        if(currentFilter === 'bidOnly') {
+            filteredBids = filteredBids.filter(b => b.bidType === 'BID_ONLY');
+        } else if(currentFilter === 'bidToRA') {
+            filteredBids = filteredBids.filter(b => b.bidType === 'BID_TO_RA');
+        }
+        
+        if(currentStatus === 'ongoing') {
+            filteredBids = filteredBids.filter(b => !isBidClosed(b));
+        }
+        
+        if(currentFinalized === 'nonFinalized') {
+            filteredBids = filteredBids.filter(b => b.finalized === false);
+        } else if(currentFinalized === 'finalized') {
+            filteredBids = filteredBids.filter(b => b.finalized === true);
+        }
+        
+        if(prebidFilterType === 'with') {
+            filteredBids = filteredBids.filter(b => {
+                const details = currentBidDetails[b.id];
+                return details && details.preBidDateTime;
+            });
+        } else if(prebidFilterType === 'without') {
+            filteredBids = filteredBids.filter(b => {
+                const details = currentBidDetails[b.id];
+                return !details || !details.preBidDateTime;
+            });
+        }
+        
+        if(fromDate) {
+            filteredBids = filteredBids.filter(b => 
+                b.bidEndDate && b.bidEndDate.split('T')[0] >= fromDate
+            );
+        }
+        if(toDate) {
+            filteredBids = filteredBids.filter(b => 
+                b.bidEndDate && b.bidEndDate.split('T')[0] <= toDate
+            );
+        }
+        
+        filteredBids.sort((a, b) => {
+            switch(currentSort) {
+                case 'Bid-Start-Date-Latest':
+                    return new Date(b.bidStartDate) - new Date(a.bidStartDate);
+                case 'Bid-Start-Date-Oldest':
+                    return new Date(a.bidStartDate) - new Date(b.bidStartDate);
+                case 'Bid-End-Date-Latest':
+                    return new Date(b.bidEndDate) - new Date(a.bidEndDate);
+                case 'Bid-End-Date-Oldest':
+                    return new Date(a.bidEndDate) - new Date(b.bidEndDate);
+                case 'PreBid-Date':
+                    const dateA = currentBidDetails[a.id]?.preBidDateTime;
+                    const dateB = currentBidDetails[b.id]?.preBidDateTime;
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;
+                    if (!dateB) return -1;
+                    return new Date(dateB) - new Date(dateA);
+                case 'State-Name':
+                    return (a.state || '').localeCompare(b.state || '');
+                default:
+                    return 0;
+            }
+        });
+        
+        // Update bids with pre-bid count
+        let withPrebidCount = filteredBids.filter(b => {
+            const details = currentBidDetails[b.id];
+            return details && details.preBidDateTime;
+        }).length;
+        $('#bidsWithPrebid').text(withPrebidCount);
+        
+        renderTable();
+        showLoading(false);
+    }
+
+    function isBidClosed(bid) {
+        if(!bid.bidEndDate) return false;
+        const now = new Date();
+        const endDate = new Date(bid.bidEndDate);
+        return endDate <= now;
+    }
+
+    function renderTable() {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageBids = filteredBids.slice(start, end);
+        const totalPages = Math.ceil(filteredBids.length / itemsPerPage);
+        
+        if(filteredBids.length > 0) {
+            $('#recordInfo').text(`Showing ${start + 1} - ${Math.min(end, filteredBids.length)} records of ${filteredBids.length} records`);
+        } else {
+            $('#recordInfo').text('Showing 0 records');
+        }
+        $('#bidsHeader').show();
+        
+        if(filteredBids.length === 0) {
+            $('#bidsList').html('<div class="alert alert-info">No bids found</div>');
+            $('#pagination').hide();
+            return;
+        }
+        
+        let html = '';
+        pageBids.forEach(bid => {
+            const isActive = !isBidClosed(bid);
+            const statusClass = isActive ? 'status-active' : 'status-closed';
+            const statusText = isActive ? 'Active' : 'Closed';
+            
+            const details = currentBidDetails[bid.id];
+            const hasPreBid = details && details.preBidDateTime;
+            
+            let extractionStatusClass = '';
+            let extractionStatusText = '';
+            if (details) {
+                if (details.extractionStatus === 'COMPLETED') {
+                    extractionStatusClass = 'extraction-completed';
+                    extractionStatusText = 'PDF Extracted';
+                } else if (details.extractionStatus === 'PENDING') {
+                    extractionStatusClass = 'extraction-pending';
+                    extractionStatusText = 'Pending';
+                } else if (details.extractionStatus === 'PROCESSING') {
+                    extractionStatusClass = 'extraction-pending';
+                    extractionStatusText = 'Processing';
+                } else if (details.extractionStatus === 'FAILED') {
+                    extractionStatusClass = 'extraction-failed';
+                    extractionStatusText = 'Failed';
+                }
+            }
+            
+            html += `
+                <div class="card">
+                    <div class="block_header">
+                        <p class="bid_no pull-left">
+                            <span class="bid_title">BID NO:</span> 
+                            <a class="bid_no_hover" href="${bid.bidDocumentUrl || '#'}" target="_blank">
+                                ${bid.bidNumber}
+                            </a>
+                            ${bid.bidType === 'BID_TO_RA' ? '<span class="ra-badge">RA</span>' : '<span class="bid-only-badge">BID</span>'}
+                            ${hasPreBid ? '<span class="prebid-badge"><i class="fa fa-calendar"></i> Pre-Bid</span>' : ''}
+                            ${bid.finalized ? '<span class="finalized-badge">Finalized</span>' : ''}
+                            ${details && extractionStatusClass ? `<span class="extraction-badge ${extractionStatusClass}">${extractionStatusText}</span>` : ''}
+                        </p>
+                        ${bid.raNumber ? `
+                            <p class="bid_no pull-left">
+                                <span class="bid_title">RA NO:</span> 
+                                <a class="bid_no_hover" href="${bid.raDocumentUrl || '#'}" target="_blank">${bid.raNumber}</a>
+                            </p>
+                        ` : ''}
+                        <p class="pull-right otherDetails">
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </p>
+                    </div>
+                    <div class="clearfix"></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="row">
+                                    <strong>Item:</strong> ${bid.items || 'N/A'}
+                                </div>
+                                <div class="row">
+                                    <strong>Quantity:</strong> ${bid.quantity || 'N/A'}
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="row">
+                                    <strong>Department:</strong> ${bid.department || 'N/A'}
+                                </div>
+                                <div class="row">
+                                    <strong>Ministry:</strong> ${bid.ministry || 'N/A'}
+                                </div>
+                                <div class="row">
+                                    <strong>Location:</strong> 
+                                    ${bid.state ? `<span class="state-badge"><i class="fa fa-map-marker"></i> ${bid.state}</span>` : ''}
+                                    ${bid.city ? `<span class="city-badge"><i class="fa fa-building"></i> ${bid.city}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="row">
+                                    <strong>Bid Start:</strong> <span class="start_date">${formatDate(bid.bidStartDate)}</span>
+                                </div>
+                                <div class="row">
+                                    <strong>Bid End:</strong> <span class="end_date">${formatDate(bid.bidEndDate)}</span>
+                                </div>
+                                ${bid.raStartDate ? `
+                                    <div class="row">
+                                        <strong>RA Start:</strong> <span class="start_date">${formatDate(bid.raStartDate)}</span>
+                                    </div>
+                                    <div class="row">
+                                        <strong>RA End:</strong> <span class="end_date">${formatDate(bid.raEndDate)}</span>
+                                    </div>
+                                ` : ''}
+                                ${bid.bidDocumentUrl ? `
+                                    <div class="row">
+                                        <a href="${bid.bidDocumentUrl}" target="_blank" class="pdf-link">
+                                            <i class="fa fa-file-pdf-o"></i> View Bid PDF
+                                        </a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        ${hasPreBid ? `
+                            <div class="prebid-info">
+                                <strong><i class="fa fa-calendar-check-o"></i> Pre-Bid Information:</strong><br>
+                                ${details.preBidDateTime ? 'Date/Time: ' + formatDate(details.preBidDateTime) + '<br>' : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        $('#bidsList').html(html);
+        
+        if(totalPages > 1) {
+            let paginationHtml = '';
+            if(currentPage > 1) {
+                paginationHtml += `<span onclick="changePage(${currentPage - 1})">Prev</span>`;
+            }
+            for(let i = 1; i <= totalPages; i++) {
+                if(i === currentPage) {
+                    paginationHtml += `<span class="current">${i}</span>`;
+                } else if(i <= 3 || i > totalPages - 2 || Math.abs(i - currentPage) <= 2) {
+                    paginationHtml += `<span onclick="changePage(${i})">${i}</span>`;
+                } else if(i === 4 && currentPage > 5) {
+                    paginationHtml += `<span>...</span>`;
+                }
+            }
+            if(currentPage < totalPages) {
+                paginationHtml += `<span onclick="changePage(${currentPage + 1})">Next</span>`;
+            }
+            $('#pagination').html(paginationHtml).show();
+        } else {
+            $('#pagination').hide();
+        }
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        renderTable();
+    }
+
+    function formatDate(dateString) {
+        if(!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch(e) {
+            return dateString;
+        }
+    }
+
+    function showLoading(show) {
+        if(show) {
+            $('#loadingIndicator').show();
+            $('#bidsList').empty();
+            $('#bidsHeader').hide();
+        } else {
+            $('#loadingIndicator').hide();
+        }
+    }
+
+    function showNotification(message, type) {
+        let alertClass = 'alert-info';
+        if(type === 'success') alertClass = 'alert-success';
+        if(type === 'error') alertClass = 'alert-danger';
+        
+        let notification = `
+            <div class="alert ${alertClass} alert-dismissible" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                ${message}
+            </div>
+        `;
+        
+        $('body').append(notification);
+        setTimeout(function() {
+            $('.alert-dismissible').fadeOut();
+        }, 5000);
+    }
+</script>
+
+</body>
+</html>
