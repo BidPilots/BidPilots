@@ -27,8 +27,8 @@ public class EmailOTPService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+   @Value("${app.mail.from:onboarding@resend.dev}")
+private String fromEmail;
 
     private static final int OTP_LENGTH          = 6;
     private static final int OTP_EXPIRY_MINUTES  = 10;
