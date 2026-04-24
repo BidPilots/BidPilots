@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title>BidPilots — All Filters</title>
+	<link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+	<link
+		href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+		rel="stylesheet">
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0
+		}
+
+		:root {
+			--bg: #07091280;
+			--bg-base: #070912;
+			--bg2: #0e1221;
+			--bg3: #161d2e;
+			--bg4: #1c2538;
+			--bg5: #222c3c;
+			--border: rgba(255, 255, 255, .07);
+			--border2: rgba(255, 255, 255, .12);
+			--border3: rgba(255, 255, 255, .18);
+			--text: #e8edf5;
+			--text2: #b0bdd0;
+			--sub: #7a8ba0;
+			--sub2: #4e5f72;
+			--accent: #4f8ef7;
+			--accent-dim: rgba(79, 142, 247, .12);
+			--accent2: #7c5cfc;
+			--success: #20c993;
+			--success-dim: rgba(32, 201, 147, .12);
+			--warn: #f5a623;
+			--warn-dim: rgba(245, 166, 35, .12);
+			--danger: #f05270;
+			--danger-dim: rgba(240, 82, 112, .12);
+			--purple-dim: rgba(124, 92, 252, .12);
+			--grad: linear-gradient(135deg, #4f8ef7, #7c5cfc);
+			--nav-w: 240px;
+			--nav-coll: 64px;
+			--r: 14px;
+			--r-sm: 8px;
+			--font: 'Plus Jakarta Sans', sans-serif;
+			--shadow: 0 4px 24px rgba(0, 0, 0, .35);
+		}
+
+		html,
+		body {
+			height: 100%;
+			background: var(--bg-base);
+			color: var(--text);
+			font-family: var(--font)
+		}
+
+		.bg-canvas {
+			position: fixed;
+			inset: 0;
+			z-index: 0;
+			overflow: hidden;
+			pointer-events: none
+		}
+
+		.bg-canvas::before {
+			content: '';
+			position: absolute;
+			width: 900px;
+			height: 900px;
+			top: -300px;
+			right: -200px;
+			background: radial-gradient(circle, rgba(79, 142, 247, .1) 0%, transparent 65%);
+			animation: bgp1 12s ease-in-out infinite alternate
+		}
+
+		.bg-canvas::after {
+			content: '';
+			position: absolute;
+			width: 700px;
+			height: 700px;
+			bottom: 5%;
+			left: -150px;
+			background: radial-gradient(circle, rgba(124, 92, 252, .08) 0%, transparent 65%);
+			animation: bgp2 15s ease-in-out infinite alternate
+		}
+
+		.bg-grid {
+			position: absolute;
+			inset: 0;
+			background-image: linear-gradient(rgba(79, 142, 247, .04) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(79, 142, 247, .04) 1px, transparent 1px);
+			background-size: 64px 64px
+		}
+
+		@keyframes bgp1 {
+			to {
+				transform: translate(50px, 80px) scale(1.12)
+			}
+		}
+
+		@keyframes bgp2 {
+			to {
+				transform: translate(-40px, 50px) scale(1.1)
+			}
+		}
+
+		.bp-page-content {
+			position: relative;
+			z-index: 1;
+			margin-left: var(--nav-w);
+			padding: 32px 40px;
+			min-height: 100vh;
+			transition: margin-left .3s
+		}
+
+		.bp-page-content.nav-collapsed {
+			margin-left: var(--nav-coll)
+		}
+
+		@media(max-width:900px) {
+			.bp-page-content {
+				margin-left: 0;
+				padding: 16px;
+				padding-top: 70px;
+			}
+		}
+
+		/* Same header style as bid page */
+		.page-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			margin-bottom: 24px;
+			gap: 16px;
+			flex-wrap: wrap;
+		}
+
+		@media(max-width:640px) {
+			.page-header {
+				flex-direction: column;
+				align-items: stretch;
+			}
+		}
+
+		.eyebrow {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: .12em;
+			text-transform: uppercase;
+			color: var(--accent);
+			margin-bottom: 8px;
+			background: var(--accent-dim);
+			border: 1px solid rgba(79, 142, 247, .2);
+			padding: 4px 10px;
+			border-radius: 50px;
+			width: fit-content;
+		}
+
+		.page-title {
+			font-size: 28px;
+			font-weight: 800;
+			color: var(--text);
+			margin-bottom: 5px;
+			line-height: 1.2;
+		}
+
+		@media(max-width:640px) {
+			.page-title {
+				font-size: 24px;
+			}
+		}
+
+		.page-subtitle {
+			font-size: 13px;
+			color: var(--sub);
+			line-height: 1.6;
+		}
+
+		@media(max-width:640px) {
+			.page-subtitle {
+				font-size: 12px;
+			}
+		}
+
+		.btn-create {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 9px 18px;
+			background: var(--grad);
+			border: none;
+			border-radius: var(--r-sm);
+			color: #fff;
+			font-family: var(--font);
+			font-size: 13px;
+			font-weight: 700;
+			cursor: pointer;
+			text-decoration: none;
+			transition: opacity .15s
+		}
+
+		.btn-create:hover {
+			opacity: .88
+		}
+
+		.btn-create svg {
+			width: 14px;
+			height: 14px
+		}
+
+		@media(max-width:640px) {
+			.btn-create {
+				width: 100%;
+				justify-content: center;
+			}
+		}
+
+		/* Summary Cards - matching bid page stat cards */
+		.summary-grid {
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 12px;
+			margin-bottom: 24px
+		}
+
+		@media(max-width:900px) {
+			.summary-grid {
+				grid-template-columns: repeat(2, 1fr);
+				gap: 10px;
+			}
+		}
+
+		@media(max-width:480px) {
+			.summary-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.summary-card {
+			background: var(--bg2);
+			border: 1px solid var(--border);
+			border-radius: var(--r);
+			padding: 16px;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			position: relative;
+			overflow: hidden;
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+
+		.summary-card::after {
+			content: '';
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			height: 2px;
+			background: transparent;
+			transition: background 0.2s;
+		}
+
+		.summary-card:hover {
+			transform: translateY(-2px);
+			border-color: var(--border2);
+			background: var(--bg3);
+		}
+
+		.summary-card.active {
+			border-color: var(--accent);
+			background: var(--accent-dim);
+		}
+
+		.summary-card.active::after {
+			background: var(--accent);
+		}
+
+		/* Color variants for different card types */
+		.summary-card[data-type="all"].active {
+			border-color: var(--accent2);
+			background: var(--purple-dim);
+		}
+
+		.summary-card[data-type="all"].active::after {
+			background: var(--accent2);
+		}
+
+		.summary-card[data-type="category"].active {
+			border-color: var(--accent);
+			background: var(--accent-dim);
+		}
+
+		.summary-card[data-type="category"].active::after {
+			background: var(--accent);
+		}
+
+		.summary-card[data-type="boq"].active {
+			border-color: var(--danger);
+			background: var(--danger-dim);
+		}
+
+		.summary-card[data-type="boq"].active::after {
+			background: var(--danger);
+		}
+
+		.summary-card[data-type="location"].active {
+			border-color: var(--success);
+			background: var(--success-dim);
+		}
+
+		.summary-card[data-type="location"].active::after {
+			background: var(--success);
+		}
+
+		.sc-icon {
+			width: 40px;
+			height: 40px;
+			border-radius: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+		}
+
+		.sc-icon svg {
+			width: 18px;
+			height: 18px;
+		}
+
+		.sc-content {
+			flex: 1;
+		}
+
+		.sc-val {
+			font-size: 24px;
+			font-weight: 800;
+			color: var(--text);
+			line-height: 1.1;
+			margin-bottom: 2px;
+			letter-spacing: -0.01em;
+		}
+
+		.sc-lbl {
+			font-size: 10px;
+			font-weight: 600;
+			letter-spacing: 0.04em;
+			color: var(--sub);
+			text-transform: uppercase;
+		}
+
+		.controls-bar {
+			display: flex;
+			gap: 12px;
+			margin-bottom: 20px;
+			background: var(--bg2);
+			border: 1px solid var(--border);
+			border-radius: var(--r);
+			padding: 12px 16px;
+			flex-wrap: wrap;
+			align-items: center;
+		}
+
+		@media(max-width:640px) {
+			.controls-bar {
+				flex-direction: column;
+				align-items: stretch;
+				gap: 10px;
+			}
+		}
+
+		.search-wrap {
+			flex: 1;
+			min-width: 200px;
+			position: relative;
+		}
+
+		.search-wrap svg {
+			position: absolute;
+			left: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 14px;
+			height: 14px;
+			color: var(--sub2);
+			pointer-events: none;
+		}
+
+		.search-inp {
+			width: 100%;
+			padding: 10px 14px 10px 36px;
+			background: var(--bg3);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			color: var(--text);
+			font-family: var(--font);
+			font-size: 13px;
+			outline: none;
+			transition: border-color .15s;
+		}
+
+		.search-inp:focus {
+			border-color: var(--accent);
+		}
+
+		.search-inp::placeholder {
+			color: var(--sub2);
+		}
+
+		.sort-select {
+			padding: 9px 12px;
+			background: var(--bg3);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			color: var(--text);
+			font-family: var(--font);
+			font-size: 12px;
+			font-weight: 600;
+			outline: none;
+			cursor: pointer;
+		}
+
+		.sort-select:hover {
+			border-color: var(--border2);
+		}
+
+		.results-info {
+			font-size: 12px;
+			color: var(--sub2);
+			margin-bottom: 16px;
+			background: var(--bg3);
+			padding: 6px 12px;
+			border-radius: 6px;
+			border: 1px solid var(--border);
+			display: inline-block;
+		}
+
+		.category-section {
+			margin-bottom: 24px;
+		}
+
+		.section-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 12px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--border);
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.section-title {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 14px;
+			font-weight: 700;
+			color: var(--text);
+		}
+
+		.section-title svg {
+			width: 16px;
+			height: 16px;
+		}
+
+		.section-count {
+			font-size: 11px;
+			color: var(--sub2);
+			background: var(--bg3);
+			padding: 2px 8px;
+			border-radius: 20px;
+		}
+
+		.filter-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+			gap: 12px;
+		}
+
+		@media(max-width:640px) {
+			.filter-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.filter-card {
+			background: var(--bg2);
+			border: 1px solid var(--border);
+			border-radius: var(--r);
+			padding: 16px;
+			transition: all 0.2s ease;
+			position: relative;
+		}
+
+		.filter-card:hover {
+			transform: translateY(-2px);
+			border-color: var(--border2);
+			background: var(--bg3);
+			box-shadow: var(--shadow);
+		}
+
+		.fc-top {
+			display: flex;
+			align-items: flex-start;
+			gap: 12px;
+			margin-bottom: 12px;
+		}
+
+		.fc-icon {
+			width: 40px;
+			height: 40px;
+			border-radius: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+		}
+
+		.fc-icon svg {
+			width: 18px;
+			height: 18px;
+		}
+
+		.fc-info {
+			flex: 1;
+			min-width: 0;
+		}
+
+		.fc-name {
+			font-size: 14px;
+			font-weight: 700;
+			color: var(--text);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			margin-bottom: 6px;
+		}
+
+		.fc-badges {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			flex-wrap: wrap;
+		}
+
+		.fc-badge {
+			display: inline-flex;
+			align-items: center;
+			padding: 2px 8px;
+			border-radius: 50px;
+			font-size: 9px;
+			font-weight: 700;
+		}
+
+		.badge-smart {
+			background: rgba(79, 142, 247, .12);
+			color: #4f8ef7;
+			border: 1px solid rgba(79, 142, 247, .25);
+		}
+
+		.badge-exact {
+			background: rgba(34, 201, 137, .12);
+			color: #22c989;
+			border: 1px solid rgba(34, 201, 137, .25);
+		}
+
+		.badge-broad {
+			background: rgba(245, 166, 35, .12);
+			color: #f5a623;
+			border: 1px solid rgba(245, 166, 35, .25);
+		}
+
+		.badge-boq {
+			background: rgba(240, 82, 106, .12);
+			color: #f0526a;
+			border: 1px solid rgba(240, 82, 106, .25);
+		}
+
+		.badge-location {
+			background: rgba(34, 201, 137, .1);
+			color: #34d399;
+			border: 1px solid rgba(34, 201, 137, .2);
+		}
+
+		.fc-actions {
+			display: flex;
+			gap: 6px;
+			margin-left: auto;
+			flex-shrink: 0;
+		}
+
+		.fc-btn {
+			background: none;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			cursor: pointer;
+			color: var(--sub2);
+			padding: 5px 7px;
+			transition: all .15s;
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			font-size: 11px;
+			font-weight: 600;
+			font-family: var(--font);
+		}
+
+		.fc-btn:hover {
+			color: var(--text);
+			border-color: var(--border2);
+			background: var(--bg4);
+		}
+
+		.fc-btn.del:hover {
+			color: var(--danger);
+			border-color: rgba(240, 82, 106, .35);
+			background: rgba(240, 82, 106, .08);
+		}
+
+		.fc-btn svg {
+			width: 12px;
+			height: 12px;
+		}
+
+		/* Multi-line meta display */
+		.fc-meta {
+			font-size: 11px;
+			color: var(--text2);
+			line-height: 1.5;
+			margin-bottom: 10px;
+			padding: 8px 0;
+			border-top: 1px solid var(--border);
+			border-bottom: 1px solid var(--border);
+		}
+
+		.fc-meta-row {
+			margin-bottom: 4px;
+			word-break: break-word;
+		}
+
+		.fc-meta-row:last-child {
+			margin-bottom: 0;
+		}
+
+		.fc-meta-row strong {
+			color: var(--accent);
+			font-weight: 600;
+			display: inline-block;
+			min-width: 65px;
+			font-size: 10px;
+		}
+
+		.fc-meta-value {
+			color: var(--text2);
+			word-break: break-word;
+			font-size: 11px;
+		}
+
+		.fc-stats {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.fc-stat {
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			font-size: 11px;
+			font-weight: 600;
+		}
+
+		.fc-stat-val {
+			font-size: 14px;
+			font-weight: 800;
+		}
+
+		.bids-val {
+			color: var(--success);
+		}
+
+		.fc-date {
+			font-size: 10px;
+			color: var(--sub2);
+		}
+
+		.empty-state {
+			text-align: center;
+			padding: 48px 24px;
+			color: var(--sub2);
+			background: var(--bg2);
+			border-radius: var(--r);
+			border: 1px solid var(--border);
+		}
+
+		.empty-state svg {
+			width: 40px;
+			height: 40px;
+			margin: 0 auto 16px;
+			display: block;
+			opacity: .4;
+		}
+
+		.empty-state h3 {
+			font-size: 15px;
+			font-weight: 700;
+			color: var(--text);
+			margin-bottom: 6px;
+		}
+
+		.empty-state p {
+			font-size: 12px;
+		}
+
+		.loading-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+			gap: 12px;
+		}
+
+		.skeleton {
+			background: var(--bg2);
+			border: 1px solid var(--border);
+			border-radius: var(--r);
+			padding: 16px;
+			height: 130px;
+			animation: shimmer 1.6s ease-in-out infinite;
+		}
+
+		@keyframes shimmer {
+
+			0%,
+			100% {
+				opacity: .6;
+			}
+
+			50% {
+				opacity: 1;
+			}
+		}
+
+		.modal-bg {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, .7);
+			z-index: 300;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.modal-bg.open {
+			display: flex;
+		}
+
+		.modal {
+			background: var(--bg2);
+			border: 1px solid var(--border2);
+			border-radius: var(--r);
+			padding: 24px;
+			max-width: 400px;
+			width: 100%;
+			animation: mIn .2s ease;
+		}
+
+		@keyframes mIn {
+			from {
+				opacity: 0;
+				transform: scale(.96);
+			}
+
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+
+		.modal-title {
+			font-size: 16px;
+			font-weight: 800;
+			color: var(--text);
+			margin-bottom: 8px;
+		}
+
+		.modal-desc {
+			font-size: 12px;
+			color: var(--sub);
+			line-height: 1.6;
+			margin-bottom: 20px;
+		}
+
+		.modal-actions {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+		}
+
+		.btn-ghost {
+			padding: 8px 16px;
+			background: var(--bg3);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			font-family: var(--font);
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--sub);
+			cursor: pointer;
+			transition: all .15s;
+		}
+
+		.btn-ghost:hover {
+			color: var(--text);
+			border-color: var(--border2);
+		}
+
+		.btn-danger {
+			padding: 8px 16px;
+			background: rgba(240, 82, 106, .15);
+			border: 1px solid rgba(240, 82, 106, .35);
+			border-radius: 8px;
+			font-family: var(--font);
+			font-size: 12px;
+			font-weight: 700;
+			color: var(--danger);
+			cursor: pointer;
+			transition: all .15s;
+		}
+
+		.btn-danger:hover {
+			background: rgba(240, 82, 106, .25);
+		}
+
+		#toastWrap {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			z-index: 999;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.toast {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 10px 14px;
+			background: var(--bg2);
+			border: 1px solid var(--border2);
+			border-radius: 10px;
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--text);
+			min-width: 200px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+			animation: tIn .3s ease;
+		}
+
+		.toast.ok {
+			border-color: rgba(34, 201, 137, .3);
+		}
+
+		.toast.err {
+			border-color: rgba(240, 82, 106, .3);
+		}
+
+		@keyframes tIn {
+			from {
+				opacity: 0;
+				transform: translateY(8px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@keyframes tOut {
+			from {
+				opacity: 1;
+				transform: translateY(0);
+			}
+
+			to {
+				opacity: 0;
+				transform: translateY(8px);
+			}
+		}
+
+		#bpOverlay {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, .5);
+			z-index: 149;
+		}
+
+		#bpOverlay.show {
+			display: block;
+		}
+	</style>
+</head>
+
+<body>
+
+	<script>
+		(function () {
+			'use strict';
+			try {
+				var x = new XMLHttpRequest();
+				x.open('GET', '/api/user/filters/my', false);
+				x.withCredentials = true;
+				x.send();
+				if (x.status === 401 || x.status === 403) {
+					window.location.replace('/api/users/login-form?redirect=' + encodeURIComponent(window.location.pathname));
+				}
+			} catch (e) { }
+		})();
+	</script>
+
+	<div class="bg-canvas">
+		<div class="bg-grid"></div>
+	</div>
+
+	<div th:replace="~{fragments/nav :: sidebar}"></div>
+	<div id="bpOverlay" onclick="bpClose()"></div>
+
+	<main class="bp-page-content" id="mainContent">
+
+		<!-- Same header as bid page with Bid Intelligence eyebrow - Removed Total Filters and Matched Bids stat pills -->
+		<div class="page-header">
+			<div>
+				<div class="eyebrow">
+					<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+					</svg>
+					Bid Intelligence
+				</div>
+				<h1 class="page-title">All Filters</h1>
+				<p class="page-subtitle">Browse and manage all your saved filters — click any category card to view
+					filters from that section</p>
+			</div>
+			<div class="header-stats">
+				<a href="/api/user/filters-page" class="btn-create">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+						<line x1="12" y1="5" x2="12" y2="19" />
+						<line x1="5" y1="12" x2="19" y2="12" />
+					</svg>
+					Create Filter
+				</a>
+			</div>
+		</div>
+
+		<!-- Summary Cards with active state highlighting - All Filters selected by default -->
+		<div class="summary-grid" id="summaryGrid"></div>
+
+		<!-- Controls Bar -->
+		<div class="controls-bar">
+			<div class="search-wrap">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<circle cx="11" cy="11" r="8" />
+					<line x1="21" y1="21" x2="16.65" y2="16.65" />
+				</svg>
+				<input class="search-inp" id="searchInp" type="text" placeholder="Search filters..."
+					oninput="applyFilters()">
+			</div>
+			<select class="sort-select" id="sortSel" onchange="applyFilters()">
+				<option value="recent">Newest First</option>
+				<option value="name">Name A–Z</option>
+				<option value="matches">Most Matches</option>
+				<option value="used">Last Used</option>
+			</select>
+		</div>
+
+		<div class="results-info" id="resultsInfo"></div>
+
+		<div id="filterGrid">
+			<div class="loading-grid" id="skeletonGrid">
+				<div class="skeleton"></div>
+				<div class="skeleton"></div>
+				<div class="skeleton"></div>
+				<div class="skeleton"></div>
+				<div class="skeleton"></div>
+				<div class="skeleton"></div>
+			</div>
+		</div>
+
+	</main>
+
+	<!-- Delete Modal -->
+	<div class="modal-bg" id="delModal">
+		<div class="modal">
+			<div class="modal-title">⚠️ Delete Filter?</div>
+			<div class="modal-desc" id="delDesc"></div>
+			<div class="modal-actions">
+				<button class="btn-ghost" onclick="closeModal()">Cancel</button>
+				<button class="btn-danger" id="confirmDelBtn" onclick="confirmDel()">Delete Filter</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="toastWrap"></div>
+
+	<script>
+		let allFilters = [];
+		let activeCategoryFilter = null;  // null means "All Filters" is selected
+		let filterToDelete = null;
+		let statesCache = [];
+		let citiesCache = {};
+
+		async function api(url, opts = {}) {
+			try {
+				const defaults = {credentials: 'include', headers: {'Content-Type': 'application/json'}};
+				const res = await fetch(url, {...defaults, ...opts, headers: {...defaults.headers, ...(opts.headers || {})}});
+				if (res.status === 401 || res.status === 403) {
+					window.location.replace('/api/users/login-form?redirect=' + encodeURIComponent(window.location.pathname));
+					return null;
+				}
+				return res.json();
+			} catch (e) {toast('err', 'Network error'); return null;}
+		}
+
+		function bpOpen() {const n = document.getElementById('bpNav'); if (n) n.classList.add('mobile-open'); document.getElementById('bpOverlay').classList.add('show');}
+		function bpClose() {const n = document.getElementById('bpNav'); if (n) n.classList.remove('mobile-open'); document.getElementById('bpOverlay').classList.remove('show');}
+
+		document.addEventListener('DOMContentLoaded', () => {
+			loadFilters();
+			fetchStates();
+			setTimeout(() => {
+				const nav = document.getElementById('bpNav'), c = document.getElementById('mainContent');
+				if (nav && c) {function sync() {c.classList.toggle('nav-collapsed', nav.classList.contains('collapsed'));} new MutationObserver(sync).observe(nav, {attributes: true, attributeFilter: ['class']}); sync();}
+			}, 0);
+		});
+
+		async function fetchStates() {
+			const d = await api('/api/states-cities/states');
+			if (d?.success) statesCache = d.states || [];
+		}
+
+		async function fetchCitiesForState(stateId) {
+			if (citiesCache[stateId]) return citiesCache[stateId];
+			const d = await api(`/api/states-cities/cities/${stateId}`);
+			if (d?.success) {
+				citiesCache[stateId] = d.cities || [];
+				return citiesCache[stateId];
+			}
+			return [];
+		}
+
+		async function loadFilters() {
+			const d = await api('/api/user/filters/my');
+			const skeleton = document.getElementById('skeletonGrid');
+			if (skeleton) skeleton.remove();
+			if (!d?.success) {
+				document.getElementById('filterGrid').innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h3>Could not load filters</h3><p>Check your connection and try again.</p></div>';
+				return;
+			}
+			allFilters = (d.filters || []).filter(f => !['MINISTRY', 'CONSIGNEE'].includes(f.filterType));
+			renderSummary();
+			applyFilters();
+		}
+
+		function renderSummary() {
+			const total = allFilters.length;
+			const catFilters = allFilters.filter(f => ['SMART', 'EXACT', 'BROAD'].includes(f.filterType));
+			const boqFilters = allFilters.filter(f => f.filterType === 'BOQ');
+			const locationFilters = allFilters.filter(f => f.filterType === 'LOCATION');
+
+			const cards = [
+				{type: 'all', fill: 'rgba(124,92,252,.12)', stroke: '#7c5cfc', icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>', val: total, lbl: 'All Filters'},
+				{type: 'category', fill: 'rgba(79,142,247,.12)', stroke: '#4f8ef7', icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>', val: catFilters.length, lbl: 'Category Filters'},
+				{type: 'boq', fill: 'rgba(240,82,106,.12)', stroke: '#f0526a', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>', val: boqFilters.length, lbl: 'BOQ Filters'},
+				{type: 'location', fill: 'rgba(34,201,137,.12)', stroke: '#34d399', icon: '<path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/>', val: locationFilters.length, lbl: 'Location Filters'}
+			];
+
+			document.getElementById('summaryGrid').innerHTML = cards.map(c =>
+				`<div class="summary-card ${activeCategoryFilter === null && c.type === 'all' ? 'active' : (activeCategoryFilter === c.type ? 'active' : '')}" data-type="${c.type}" onclick="filterByCategory('${c.type}')">
+					<div class="sc-icon" style="background:${c.fill}"><svg viewBox="0 0 24 24" fill="none" stroke="${c.stroke}" stroke-width="2">${c.icon}</svg></div>
+					<div class="sc-content"><div class="sc-val">${c.val}</div><div class="sc-lbl">${c.lbl}</div></div>
+				</div>`
+			).join('');
+		}
+
+		function filterByCategory(category) {
+			activeCategoryFilter = category === 'all' ? null : category;
+
+			document.querySelectorAll('.summary-card').forEach(card => {
+				const cardType = card.dataset.type;
+				if ((cardType === 'all' && activeCategoryFilter === null) || cardType === activeCategoryFilter) {
+					card.classList.add('active');
+				} else {
+					card.classList.remove('active');
+				}
+			});
+
+			applyFilters();
+			document.getElementById('filterGrid').scrollIntoView({behavior: 'smooth', block: 'start'});
+		}
+
+		function applyFilters() {
+			const q = document.getElementById('searchInp').value.trim().toLowerCase();
+			const sort = document.getElementById('sortSel').value;
+
+			let list = allFilters.slice();
+
+			if (activeCategoryFilter === 'category') {
+				list = list.filter(f => ['SMART', 'EXACT', 'BROAD'].includes(f.filterType));
+			} else if (activeCategoryFilter === 'boq') {
+				list = list.filter(f => f.filterType === 'BOQ');
+			} else if (activeCategoryFilter === 'location') {
+				list = list.filter(f => f.filterType === 'LOCATION');
+			}
+
+			if (q) {
+				list = list.filter(f => {
+					const hay = [f.filterName, f.filterType, f.categoryName, f.boqTitle, f.keywords].filter(Boolean).join(' ').toLowerCase();
+					return hay.includes(q);
+				});
+			}
+
+			if (sort === 'name') list.sort((a, b) => (a.filterName || '').localeCompare(b.filterName || ''));
+			if (sort === 'matches') list.sort((a, b) => (b.matchCount || 0) - (a.matchCount || 0));
+			if (sort === 'used') list.sort((a, b) => {
+				const dateA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+				const dateB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+				return dateB - dateA;
+			});
+			if (sort === 'recent') list.sort((a, b) => {
+				const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+				const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+				return dateB - dateA;
+			});
+
+			document.getElementById('resultsInfo').innerHTML = `Showing <strong>${list.length}</strong> of <strong>${allFilters.length}</strong> filters`;
+			renderGroupedGrid(list);
+		}
+
+		async function resolveStateNames(stateIds) {
+			if (!stateIds || !stateIds.length) return '';
+			const names = [];
+			for (const id of stateIds) {
+				const s = statesCache.find(st => st.id === id);
+				if (s) names.push(s.name);
+				else {
+					const d = await api(`/api/states-cities/state/${id}`);
+					if (d?.success && d.state) names.push(d.state.name);
+				}
+			}
+			if (!names.length) return `${stateIds.length} state(s)`;
+			if (names.length <= 2) return names.join(', ');
+			return names.slice(0, 2).join(', ') + ' +' + (names.length - 2);
+		}
+
+		async function resolveCityNames(cityIds) {
+			if (!cityIds || !cityIds.length) return '';
+			const names = [];
+			for (const id of cityIds) {
+				let found = false;
+				for (const stateId in citiesCache) {
+					const city = citiesCache[stateId].find(c => c.id === id);
+					if (city) {
+						names.push(city.name);
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					const d = await api(`/api/states-cities/city/${id}`);
+					if (d?.success && d.city) names.push(d.city.name);
+				}
+			}
+			if (!names.length) return `${cityIds.length} city(ies)`;
+			if (names.length <= 2) return names.join(', ');
+			return names.slice(0, 2).join(', ') + ' +' + (names.length - 2);
+		}
+
+		async function renderGroupedGrid(filters) {
+			const container = document.getElementById('filterGrid');
+			if (!filters.length) {
+				container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17H5a2 2 0 0 0-2 2 2 2 0 0 0 2 2h14a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-4M9 17V9m0 8h6V9m0 8"/></svg><h3>No filters found</h3><p>Try a different search or filter type.</p></div>`;
+				return;
+			}
+
+			const catFilters = filters.filter(f => ['SMART', 'EXACT', 'BROAD'].includes(f.filterType));
+			const boqFilters = filters.filter(f => f.filterType === 'BOQ');
+			const locFilters = filters.filter(f => f.filterType === 'LOCATION');
+
+			let html = '';
+
+			if (catFilters.length) {
+				const catCards = [];
+				for (const f of catFilters) {
+					const stateStr = await resolveStateNames(f.stateIds);
+					const cityStr = f.cityIds && f.cityIds.length ? await resolveCityNames(f.cityIds) : '';
+					const locationStr = cityStr ? `${stateStr} · ${cityStr}` : stateStr;
+					catCards.push(await filterCard(f, f.categoryName || '—', locationStr));
+				}
+				html += `<div class="category-section"><div class="section-header"><div class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Category Filters</div><span class="section-count">${catFilters.length}</span></div><div class="filter-grid">${catCards.join('')}</div></div>`;
+			}
+
+			if (boqFilters.length) {
+				const boqCards = [];
+				for (const f of boqFilters) {
+					const stateStr = await resolveStateNames(f.stateIds);
+					const cityStr = f.cityIds && f.cityIds.length ? await resolveCityNames(f.cityIds) : '';
+					const locationStr = cityStr ? `${stateStr} · ${cityStr}` : stateStr;
+					boqCards.push(await filterCard(f, f.boqTitle || '—', locationStr));
+				}
+				html += `<div class="category-section"><div class="section-header"><div class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0526a" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>BOQ / Item Filters</div><span class="section-count">${boqFilters.length}</span></div><div class="filter-grid">${boqCards.join('')}</div></div>`;
+			}
+
+			if (locFilters.length) {
+				const locCards = [];
+				for (const f of locFilters) {
+					const stateStr = await resolveStateNames(f.stateIds);
+					const cityStr = f.cityIds && f.cityIds.length ? await resolveCityNames(f.cityIds) : '';
+					const locationStr = cityStr ? `${stateStr} · ${cityStr}` : stateStr;
+					locCards.push(await filterCard(f, null, locationStr));
+				}
+				html += `<div class="category-section"><div class="section-header"><div class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>Location Only Filters</div><span class="section-count">${locFilters.length}</span></div><div class="filter-grid">${locCards.join('')}</div></div>`;
+			}
+			container.innerHTML = html;
+		}
+
+		async function filterCard(f, primaryName, locationStr) {
+			const icons = {
+				SMART: {fill: 'rgba(79,142,247,.12)', stroke: '#4f8ef7', path: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>'},
+				EXACT: {fill: 'rgba(34,201,137,.12)', stroke: '#22c989', path: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>'},
+				BROAD: {fill: 'rgba(245,166,35,.12)', stroke: '#f5a623', path: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>'},
+				BOQ: {fill: 'rgba(240,82,106,.12)', stroke: '#f0526a', path: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'},
+				LOCATION: {fill: 'rgba(34,201,137,.12)', stroke: '#34d399', path: '<path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/>'},
+			};
+			const ic = icons[f.filterType] || icons.SMART;
+			const bMap = {SMART: 'badge-smart', EXACT: 'badge-exact', BROAD: 'badge-broad', BOQ: 'badge-boq', LOCATION: 'badge-location'};
+
+			let metaHtml = '';
+
+			if (f.filterType === 'BOQ') {
+				metaHtml = `
+					<div class="fc-meta-row">
+						<strong>BOQ Item:</strong>
+						<span class="fc-meta-value">${esc(primaryName)}</span>
+					</div>`;
+				if (locationStr) {
+					metaHtml += `
+					<div class="fc-meta-row">
+						<strong>Location:</strong>
+						<span class="fc-meta-value">${esc(locationStr)}</span>
+					</div>`;
+				}
+			} else if (f.filterType === 'LOCATION') {
+				metaHtml = `
+					<div class="fc-meta-row">
+						<strong>Location:</strong>
+						<span class="fc-meta-value">${esc(locationStr)}</span>
+					</div>`;
+			} else {
+				metaHtml = `
+					<div class="fc-meta-row">
+						<strong>Category:</strong>
+						<span class="fc-meta-value">${esc(primaryName)}</span>
+					</div>`;
+				if (locationStr) {
+					metaHtml += `
+					<div class="fc-meta-row">
+						<strong>Location:</strong>
+						<span class="fc-meta-value">${esc(locationStr)}</span>
+					</div>`;
+				}
+			}
+
+			const date = f.createdAt ? new Date(f.createdAt).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+			const safeName = esc(f.filterName).replace(/'/g, "\\'");
+
+			return `<div class="filter-card">
+				<div class="fc-top">
+					<div class="fc-icon" style="background:${ic.fill}"><svg viewBox="0 0 24 24" fill="none" stroke="${ic.stroke}" stroke-width="2">${ic.path}</svg></div>
+					<div class="fc-info">
+						<div class="fc-name">${esc(f.filterName)}</div>
+						<div class="fc-badges"><span class="fc-badge ${bMap[f.filterType] || 'badge-smart'}">${f.filterType}</span></div>
+					</div>
+					<div class="fc-actions">
+						<button class="fc-btn del" onclick="promptDel(${f.id},'${safeName}')" title="Delete">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<polyline points="3 6 5 6 21 6"/>
+								<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+								<path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+				<div class="fc-meta">${metaHtml}</div>
+				<div class="fc-stats">
+					<div class="fc-stat">
+						<svg width="12" height="12" viewBox="0 0 20 20" fill="var(--success)">
+							<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+						</svg>
+						<span class="fc-stat-val bids-val">${f.matchCount || 0}</span>
+						<span style="color:var(--sub2);font-size:10px">matched bids</span>
+					</div>
+					${date ? `<span class="fc-date">Created: ${date}</span>` : ''}
+				</div>
+			</div>`;
+		}
+
+		function promptDel(id, name) {filterToDelete = id; document.getElementById('delDesc').innerHTML = `"<strong>${esc(name)}</strong>" and all its matched bids will be permanently removed.`; document.getElementById('delModal').classList.add('open');}
+		function closeModal() {document.getElementById('delModal').classList.remove('open'); filterToDelete = null;}
+		async function confirmDel() {
+			if (!filterToDelete) return;
+			const btn = document.getElementById('confirmDelBtn');
+			btn.textContent = 'Deleting…'; btn.disabled = true;
+			const d = await api(`/api/user/filters/${filterToDelete}`, {method: 'DELETE'});
+			btn.textContent = 'Delete Filter'; btn.disabled = false;
+			closeModal();
+			if (d?.success) {toast('ok', 'Filter deleted'); loadFilters();} else {toast('err', d?.message || 'Failed');}
+		}
+		document.getElementById('delModal').addEventListener('click', function (e) {if (e.target === this) closeModal();});
+
+		const OK_IC = `<svg width="15" height="15" viewBox="0 0 20 20" fill="#22c989"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>`;
+		const ERR_IC = `<svg width="15" height="15" viewBox="0 0 20 20" fill="#f0526a"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>`;
+		function toast(type, msg) {const w = document.getElementById('toastWrap'); const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `${type === 'ok' ? OK_IC : ERR_IC}<span>${msg}</span>`; w.appendChild(t); setTimeout(() => {t.style.animation = 'tOut .3s ease forwards'; setTimeout(() => t.remove(), 300);}, 3800);}
+		function esc(s) {return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');}
+	</script>
+
+</body>
+
+</html>

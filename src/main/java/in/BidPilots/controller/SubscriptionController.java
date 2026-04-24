@@ -23,55 +23,51 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/subscriptions")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class SubscriptionController {
 
-    private final SubscriptionService subscriptionService;
-    private final SubscriptionUserLoginService subscriptionUserLoginService;
-    private final UserRegistrationRepository userRepository;
-    private final AuthenticationManager authenticationManager;
+    private final SubscriptionService            subscriptionService;
+    private final SubscriptionUserLoginService   subscriptionUserLoginService;
+    private final UserRegistrationRepository     userRepository;
+    private final AuthenticationManager          authenticationManager;
 
-    // ─────────────────────────────────────────────────────────────
-    // SUBSCRIPTION PAGE LOGIN - NO SUBSCRIPTION CHECK
-    // This endpoint allows users with expired subscriptions to log in
-    // and access the subscription page to renew
-    // ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // SUBSCRIPTION PAGE LOGIN — allows expired-subscription users to log in
+    // ─────────────────────────────────────────────────────────────────────────
+
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> subscriptionLogin(
             @Valid @RequestBody UserLoginDTO loginDTO,
             HttpServletRequest request) {
-        
-        log.info("🔐 Subscription page login request for email: {}", loginDTO.getEmail());
+
+        log.info("🔐 Subscription login — email={}", loginDTO.getEmail());
 
         try {
-            // Authenticate with Spring Security
-            Authentication authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword()));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginDTO.getEmail(), loginDTO.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
             HttpSession session = request.getSession(true);
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-            // Use the special subscription login service (no subscription expiry check)
-            Map<String, Object> serviceResponse = subscriptionUserLoginService.loginForSubscription(loginDTO);
+            Map<String, Object> serviceResponse =
+                    subscriptionUserLoginService.loginForSubscription(loginDTO);
 
-            if (serviceResponse.containsKey("success") && (Boolean) serviceResponse.get("success")) {
-                // Add session info to response
+            if (Boolean.TRUE.equals(serviceResponse.get("success"))) {
                 serviceResponse.put("sessionId", session.getId());
-                log.info("✅ Subscription page login successful for: {}", loginDTO.getEmail());
-                return ResponseEntity.ok().header("Content-Type", "application/json").body(serviceResponse);
-            } else {
-                return ResponseEntity.badRequest().header("Content-Type", "application/json").body(serviceResponse);
+                log.info("✅ Subscription login OK — email={}", loginDTO.getEmail());
+                return ResponseEntity.ok(serviceResponse);
             }
+            return ResponseEntity.badRequest().body(serviceResponse);
 
         } catch (BadCredentialsException e) {
-            log.error("Bad credentials for subscription login: {}", loginDTO.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("success", false, "message", "Invalid email or password"));
         } catch (DisabledException e) {
@@ -81,92 +77,134 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("success", false, "message", "Account is locked"));
         } catch (Exception e) {
-            log.error("Subscription login failed: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Invalid email or password"));
+            log.error("Subscription login error: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "Login failed — please try again"));
         }
     }
 
-    // GET /api/subscriptions/plans
-    // Public — no auth required. Used by pricing page.
+    // ─────────────────────────────────────────────────────────────────────────
+    // PLANS — public, no auth
+    // ─────────────────────────────────────────────────────────────────────────
+
     @GetMapping("/plans")
     public ResponseEntity<Map<String, Object>> getPlans() {
         return ResponseEntity.ok(subscriptionService.getAllPlans());
     }
 
-    // GET /api/subscriptions/my-subscription
-    // Returns current subscription status, days remaining, etc.
+    // ─────────────────────────────────────────────────────────────────────────
+    // MY SUBSCRIPTION
+    // ─────────────────────────────────────────────────────────────────────────
+
     @GetMapping("/my-subscription")
     public ResponseEntity<Map<String, Object>> getMySubscription() {
         Long userId = resolveUserId();
         if (userId == null) return unauthorized();
 
         Map<String, Object> result = subscriptionService.getMySubscription(userId);
-        boolean ok = result.containsKey("success") && (Boolean) result.get("success");
-        return ok ? ResponseEntity.ok(result) : ResponseEntity.status(404).body(result);
+        return Boolean.TRUE.equals(result.get("success"))
+                ? ResponseEntity.ok(result)
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
     }
 
-    // POST /api/subscriptions/create-order
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 1 — Create Razorpay order
     // Body: { "planDuration": "MONTHLY" }
-    // Step 1 of payment: creates Razorpay order, returns orderId to frontend.
+    // ─────────────────────────────────────────────────────────────────────────
+
     @PostMapping("/create-order")
-    public ResponseEntity<Map<String, Object>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<Map<String, Object>> createOrder(
+            @Valid @RequestBody CreateOrderRequest request) {
+
         Long userId = resolveUserId();
         if (userId == null) return unauthorized();
 
-        log.info("💳 Create order userId={} plan={}", userId, request.getPlanDuration());
+        log.info("💳 Create order — userId={} plan={}", userId, request.getPlanDuration());
         Map<String, Object> result = subscriptionService.createOrder(userId, request);
-        boolean ok = result.containsKey("success") && (Boolean) result.get("success");
-        return ok ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);
+        return Boolean.TRUE.equals(result.get("success"))
+                ? ResponseEntity.ok(result)
+                : ResponseEntity.badRequest().body(result);
     }
 
-    // POST /api/subscriptions/verify-payment
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 2 — Verify payment & activate / extend subscription
     // Body: { razorpayOrderId, razorpayPaymentId, razorpaySignature }
-    // Step 2: frontend sends these after Razorpay modal succeeds.
-    // Verifies HMAC signature → activates subscription.
+    // ─────────────────────────────────────────────────────────────────────────
+
     @PostMapping("/verify-payment")
-    public ResponseEntity<Map<String, Object>> verifyPayment(@Valid @RequestBody VerifyPaymentRequest request) {
+    public ResponseEntity<Map<String, Object>> verifyPayment(
+            @Valid @RequestBody VerifyPaymentRequest request) {
+
         Long userId = resolveUserId();
         if (userId == null) return unauthorized();
 
-        log.info("🔐 Verify payment userId={} orderId={}", userId, request.getRazorpayOrderId());
+        log.info("🔐 Verify payment — userId={} orderId={}", userId, request.getRazorpayOrderId());
         Map<String, Object> result = subscriptionService.verifyPayment(userId, request);
-        boolean ok = result.containsKey("success") && (Boolean) result.get("success");
-        return ok ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);
+        return Boolean.TRUE.equals(result.get("success"))
+                ? ResponseEntity.ok(result)
+                : ResponseEntity.badRequest().body(result);
     }
 
-    // POST /api/subscriptions/cancel
-    // Access continues until end date.
+    // ─────────────────────────────────────────────────────────────────────────
+    // CANCEL — access continues until endDate
+    // ─────────────────────────────────────────────────────────────────────────
+
     @PostMapping("/cancel")
     public ResponseEntity<Map<String, Object>> cancel() {
         Long userId = resolveUserId();
         if (userId == null) return unauthorized();
 
-        log.info("🚫 Cancel subscription userId={}", userId);
+        log.info("🚫 Cancel subscription — userId={}", userId);
         Map<String, Object> result = subscriptionService.cancelSubscription(userId);
-        boolean ok = result.containsKey("success") && (Boolean) result.get("success");
-        return ok ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);
+        return Boolean.TRUE.equals(result.get("success"))
+                ? ResponseEntity.ok(result)
+                : ResponseEntity.badRequest().body(result);
     }
 
-    // ── Private helpers ──
+    // ─────────────────────────────────────────────────────────────────────────
+    // RAZORPAY WEBHOOK — must be PUBLIC in SecurityConfig
+    // Always return 200 to prevent Razorpay retries; log errors internally.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @PostMapping("/webhook")
+    public ResponseEntity<Map<String, Object>> handleWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
+
+        log.info("📥 Razorpay webhook received, signature present={}", signature != null);
+
+        if (signature == null || signature.isBlank()) {
+            log.warn("❌ Webhook without signature — rejecting");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("success", false, "message", "Missing webhook signature"));
+        }
+
+        Map<String, Object> result = subscriptionService.handleWebhook(payload, signature);
+        // Always return 200 to Razorpay
+        return ResponseEntity.ok(result);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────────────────
 
     private Long resolveUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+        if (auth == null || !auth.isAuthenticated()
+                || "anonymousUser".equals(auth.getPrincipal())) {
             return null;
         }
         try {
-            User user = userRepository.findByEmail(auth.getName())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            return user.getId();
+            Optional<User> userOpt = userRepository.findByEmail(auth.getName());
+            return userOpt.map(User::getId).orElse(null);
         } catch (Exception e) {
-            log.error("Cannot resolve userId: {}", e.getMessage());
+            log.error("Cannot resolve userId for email={}: {}", auth.getName(), e.getMessage());
             return null;
         }
     }
 
     private ResponseEntity<Map<String, Object>> unauthorized() {
-        return ResponseEntity.status(401)
-                .body(Map.of("success", false, "message", "Not authenticated"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "message", "Not authenticated — please log in"));
     }
 }

@@ -1,6 +1,6 @@
 package in.BidPilots.controller;
 
-import in.BidPilots.service.UserLoginService;
+import in.BidPilots.service.UserRegistration.UserRegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -10,23 +10,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
  * Serves HTML pages for the subscription module.
- * MUST be @Controller — NOT @RestController.
+ * Must be @Controller — NOT @RestController.
  *
- * SecurityConfig must have:
- *   .requestMatchers("/subscription/plans").permitAll()
- *   .requestMatchers("/payment/callback").permitAll()
- *   .requestMatchers("/api/subscriptions/plans").permitAll()
+ * SecurityConfig must permit:
+ *   /api/subscriptions/plans   — JSON data (public)
+ *   /payment/callback          — Razorpay redirect (public)
+ *   /api/subscriptions/webhook — Razorpay webhook  (public)
+ *
+ * /subscription/plans is authenticated — this controller enforces that
+ * server-side and redirects to login if not authenticated.
  */
 @Controller
 @RequiredArgsConstructor
 @Slf4j
 public class SubscriptionPageController {
 
-    private final UserLoginService userLoginService;
+    // FIX: the original code injected a non-existent "UserLoginService".
+    // The correct service that provides getUserByEmail() is UserRegistrationService.
+    private final UserRegistrationService userRegistrationService;
 
     // ─── Subscription Plans HTML Page ─────────────────────────────────────────
 
@@ -36,34 +43,48 @@ public class SubscriptionPageController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false, defaultValue = "false") boolean expired) {
 
-        ModelAndView mav = new ModelAndView("subscription-plans");
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            Map<String, Object> userResponse = userLoginService.getUserByEmail(auth.getName());
-            if (Boolean.TRUE.equals(userResponse.get("success"))) {
-                mav.addObject("user", userResponse.get("user"));
-            }
+        boolean isAuthenticated = auth != null
+                && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal());
+
+        if (!isAuthenticated) {
+            StringBuilder returnUrl = new StringBuilder("/subscription/plans");
+            StringBuilder qs = new StringBuilder();
+            if (userId != null) qs.append("&userId=").append(userId);
+            if (email  != null) qs.append("&email=").append(email);
+            if (expired)        qs.append("&expired=true");
+            if (qs.length() > 0) returnUrl.append("?").append(qs.substring(1));
+
+            log.info("🔒 Unauthenticated access to /subscription/plans — redirecting to login");
+            return new ModelAndView("redirect:/api/users/login-form?redirect="
+                    + URLEncoder.encode(returnUrl.toString(), StandardCharsets.UTF_8));
         }
 
-        if (userId != null) mav.addObject("userId",    userId);
-        if (email  != null) mav.addObject("userEmail", email);
-        if (expired)        mav.addObject("subscriptionExpired", true);
+        ModelAndView mav = new ModelAndView("subscription-plans");
 
-        log.info("📄 Subscription plans page — userId={}, expired={}", userId, expired);
+        Map<String, Object> userResponse = userRegistrationService.getUserByEmail(auth.getName());
+        if (Boolean.TRUE.equals(userResponse.get("success"))) {
+            mav.addObject("user", userResponse.get("user"));
+        }
+
+        if (userId != null) mav.addObject("userId",               userId);
+        if (email  != null) mav.addObject("userEmail",            email);
+        if (expired)        mav.addObject("subscriptionExpired",  true);
+
+        log.info("📄 Subscription plans page — user={}, expired={}", auth.getName(), expired);
         return mav;
     }
 
     // ─── Payment Callback Page ─────────────────────────────────────────────────
+
     /**
-     * Razorpay redirects back to this URL after payment with:
+     * Razorpay redirects the browser here after checkout with:
      *   ?razorpay_payment_id=xxx&razorpay_order_id=xxx&razorpay_signature=xxx
      *
-     * Set this as your Razorpay payment link callback URL:
-     *   http://YOUR_SERVER/payment/callback
-     *
-     * The page JS reads the params, calls /api/subscriptions/payment/success,
-     * verifies signature, activates the subscription, then redirects to login.
+     * The Thymeleaf template (payment-success.html) reads these params via JS
+     * and calls POST /api/subscriptions/verify-payment, then redirects to the
+     * dashboard on success.
      */
     @GetMapping("/payment/callback")
     public ModelAndView paymentCallback(

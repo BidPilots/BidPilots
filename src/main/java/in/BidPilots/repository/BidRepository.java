@@ -208,4 +208,12 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 	 */
 	@Query("SELECT b FROM Bid b WHERE b.bidEndDate <= :cutoffDate AND b.isFinalized = false")
 	List<Bid> findBidsToFinalizeBatch(@Param("cutoffDate") LocalDateTime cutoffDate, Pageable pageable);
+	
+	// Add this method to BidRepository.java
+
+	/**
+	 * Find all active bids that are not finalized
+	 */
+	@Query("SELECT b FROM Bid b WHERE b.isActive = true AND b.isFinalized = false")
+	List<Bid> findByIsActiveTrueAndIsFinalizedFalse();
 }

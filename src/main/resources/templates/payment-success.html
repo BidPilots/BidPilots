@@ -50,123 +50,123 @@
     </div>
 
     <div id="actions" style="display:none">
-        <a id="primaryBtn" href="/api/users/login-form" class="btn btn-primary">Go to Login</a>
-        <a id="secondaryBtn" href="/subscription/plans" class="btn btn-ghost" style="display:none">View Plans</a>
+        <a id="primaryBtn"   href="/api/users/login-form"  class="btn btn-primary">Go to Login</a>
+        <a id="secondaryBtn" href="/subscription/plans"    class="btn btn-ghost"   style="display:none">View Plans</a>
     </div>
 
     <p id="statusMsg" class="status-msg"></p>
 </div>
 
 <script>
-// Razorpay calls your return URL with these query params after payment
-// URL format: /payment/callback?razorpay_payment_id=xxx&razorpay_order_id=xxx&razorpay_signature=xxx
-const params       = new URLSearchParams(window.location.search);
-const paymentId    = params.get('razorpay_payment_id');
-const orderId      = params.get('razorpay_order_id');
-const signature    = params.get('razorpay_signature');
-const subId        = sessionStorage.getItem('pendingSubscriptionId');
-const planName     = sessionStorage.getItem('pendingPlanName') || 'your plan';
+    /*
+     * Razorpay redirects to /payment/callback with these query params:
+     *   ?razorpay_payment_id=pay_xxx
+     *   &razorpay_order_id=order_xxx
+     *   &razorpay_signature=xxx
+     *
+     * The subscription-plans page stores the plan name in sessionStorage
+     * under the key 'pendingPlanName' before opening the Razorpay checkout.
+     */
+    const params    = new URLSearchParams(window.location.search);
+    const paymentId = params.get('razorpay_payment_id');
+    const orderId   = params.get('razorpay_order_id');
+    const signature = params.get('razorpay_signature');
+    const planName  = sessionStorage.getItem('pendingPlanName') || 'your plan';
 
-function setStep(stepId, state) {
-    const el = document.getElementById(stepId);
-    if (!el) return;
-    el.className = 'step ' + state;
-}
-
-function showSuccess(message) {
-    document.getElementById('spinner').style.display    = 'none';
-    document.getElementById('iconSuccess').style.display = 'flex';
-    document.getElementById('title').textContent        = 'Payment successful!';
-    document.getElementById('subtitle').textContent     = message;
-    document.getElementById('primaryBtn').textContent   = 'Go to Login';
-    document.getElementById('primaryBtn').href          = '/api/users/login-form';
-    document.getElementById('actions').style.display   = 'block';
-    sessionStorage.removeItem('pendingSubscriptionId');
-    sessionStorage.removeItem('pendingPlanName');
-    // Auto-redirect to login after 3 seconds
-    setTimeout(() => { window.location.href = '/api/users/login-form'; }, 3000);
-    document.getElementById('statusMsg').textContent = 'Redirecting to login in 3 seconds...';
-}
-
-function showError(message) {
-    document.getElementById('spinner').style.display  = 'none';
-    document.getElementById('iconError').style.display = 'flex';
-    document.getElementById('title').textContent      = 'Payment failed';
-    document.getElementById('subtitle').textContent   = message;
-    document.getElementById('primaryBtn').textContent  = 'Try Again';
-    document.getElementById('primaryBtn').href         = '/subscription/plans';
-    document.getElementById('secondaryBtn').style.display = 'inline-block';
-    document.getElementById('actions').style.display  = 'block';
-}
-
-async function processPayment() {
-    document.getElementById('steps').classList.add('show');
-
-    // Case 1: Came back from Razorpay with payment params
-    if (paymentId && signature) {
-        setStep('step1', 'active');
-
-        const body = {
-            subscriptionId:      subId,
-            razorpayPaymentId:   paymentId,
-            razorpayOrderId:     orderId  || '',
-            razorpaySignature:   signature,
-            paymentMethod:       'Razorpay'
-        };
-
-        try {
-            const res  = await fetch('/api/subscriptions/payment/success', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(body),
-                credentials: 'include'
-            });
-            const data = await res.json();
-
-            setStep('step1', data.success ? 'done' : 'error');
-
-            if (data.success) {
-                setStep('step2', 'done');
-                setStep('step3', 'done');
-                showSuccess(`${planName} activated! Your account is now active.`);
-            } else {
-                setStep('step2', 'error');
-                showError(data.message || 'Payment verification failed. Please contact support.');
-                // Record failure
-                if (subId) {
-                    await fetch('/api/subscriptions/payment/failure', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ subscriptionId: subId, reason: data.message })
-                    });
-                }
-            }
-        } catch (e) {
-            setStep('step1', 'error');
-            showError('Network error. Please contact support with your payment ID: ' + paymentId);
-        }
-
-    // Case 2: Came back from Razorpay payment link (no params — payment link flow)
-    // In this case Razorpay webhook will handle activation, just show success
-    } else if (subId) {
-        setStep('step1', 'done');
-        setStep('step2', 'active');
-        document.getElementById('statusMsg').textContent =
-            'Payment received. Activation may take a moment via webhook.';
-        setTimeout(() => {
-            setStep('step2', 'done');
-            setStep('step3', 'done');
-            showSuccess('Payment received! Your subscription will activate shortly.');
-        }, 2000);
-
-    // Case 3: Landed here directly with no context
-    } else {
-        document.getElementById('steps').classList.remove('show');
-        showError('No payment information found. Please contact support if you completed a payment.');
+    function setStep(id, state) {
+        const el = document.getElementById(id);
+        if (el) el.className = 'step ' + state;
     }
-}
 
-processPayment();
+    function showSuccess(message) {
+        document.getElementById('spinner').style.display     = 'none';
+        document.getElementById('iconSuccess').style.display = 'flex';
+        document.getElementById('title').textContent         = 'Payment successful!';
+        document.getElementById('subtitle').textContent      = message;
+        document.getElementById('primaryBtn').textContent    = 'Go to Login';
+        document.getElementById('primaryBtn').href           = '/api/users/login-form';
+        document.getElementById('actions').style.display    = 'block';
+        sessionStorage.removeItem('pendingPlanName');
+        // Auto-redirect after 3 s
+        let secs = 3;
+        const tick = setInterval(() => {
+            document.getElementById('statusMsg').textContent =
+                `Redirecting to login in ${secs--} second${secs !== 0 ? 's' : ''}...`;
+            if (secs < 0) {
+                clearInterval(tick);
+                window.location.href = '/api/users/login-form';
+            }
+        }, 1000);
+    }
+
+    function showError(message) {
+        document.getElementById('spinner').style.display    = 'none';
+        document.getElementById('iconError').style.display  = 'flex';
+        document.getElementById('title').textContent        = 'Payment verification failed';
+        document.getElementById('subtitle').textContent     = message;
+        document.getElementById('primaryBtn').textContent   = 'Try Again';
+        document.getElementById('primaryBtn').href          = '/subscription/plans';
+        document.getElementById('secondaryBtn').style.display = 'inline-block';
+        document.getElementById('actions').style.display   = 'block';
+    }
+
+    async function processPayment() {
+        // ── Case 1: Standard Razorpay checkout modal — params are in the URL ──
+        if (paymentId && orderId && signature) {
+            document.getElementById('steps').classList.add('show');
+            setStep('step1', 'active');
+
+            try {
+                // FIX: correct endpoint is /api/subscriptions/verify-payment
+                //      correct field names match VerifyPaymentRequest.java
+                const res = await fetch('/api/subscriptions/verify-payment', {
+                    method:      'POST',
+                    headers:     { 'Content-Type': 'application/json' },
+                    credentials: 'include',   // sends session cookie
+                    body: JSON.stringify({
+                        razorpayOrderId:   orderId,
+                        razorpayPaymentId: paymentId,
+                        razorpaySignature: signature
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    setStep('step1', 'done');
+                    setStep('step2', 'done');
+                    setStep('step3', 'done');
+                    const sub = data.subscription;
+                    const msg = data.extended
+                        ? `${planName} extended! Access until ${sub?.formattedEndDate || 'your new expiry'}.`
+                        : `${planName} activated! Access until ${sub?.formattedEndDate || 'your expiry date'}.`;
+                    showSuccess(msg);
+                } else {
+                    setStep('step1', 'error');
+                    setStep('step2', 'error');
+                    showError(
+                        (data.message || 'Verification failed.') +
+                        ' If money was deducted, contact support with Payment ID: ' + paymentId
+                    );
+                }
+            } catch (e) {
+                setStep('step1', 'error');
+                showError(
+                    'Network error during verification. ' +
+                    'If money was deducted, contact support with Payment ID: ' + paymentId
+                );
+            }
+
+        // ── Case 2: No params — user landed here directly or payment link flow ──
+        } else {
+            showError(
+                'No payment information found in the URL. ' +
+                'If you completed a payment, our server will activate it automatically within a few minutes.'
+            );
+        }
+    }
+
+    processPayment();
 </script>
 </body>
 </html>

@@ -37,7 +37,7 @@
 			--sub: #94a3b8;
 			--border: rgba(255, 255, 255, 0.08);
 			--border2: rgba(255, 255, 255, 0.14);
-			--glass: rgba(255, 255, 255, 0.97);
+			--border-light: #e2e8f0;
 			--radius: 16px;
 			--font: 'Plus Jakarta Sans', sans-serif;
 			--success: #22c989;
@@ -111,6 +111,7 @@
 			z-index: 1
 		}
 
+		/* Updated nav with white horizontal line (same as login page) */
 		nav {
 			position: fixed;
 			top: 0;
@@ -124,7 +125,7 @@
 			justify-content: space-between;
 			background: rgba(10, 14, 26, 0.85);
 			backdrop-filter: blur(20px);
-			border-bottom: 1px solid var(--border)
+			border-bottom: 1px solid var(--border-light);
 		}
 
 		.nav-brand {
@@ -1753,6 +1754,65 @@
 			setTimeout(() => {t.style.display = 'none';}, 3000);
 		}
 
+		// Check if user is logged in — calls /api/users/current-user (public-safe, returns authenticated flag)
+		async function checkUserLoggedIn() {
+			try {
+				const response = await fetch('/api/users/current-user', {
+					method: 'GET',
+					credentials: 'include',
+					headers: { 'Accept': 'application/json' }
+				});
+				if (!response.ok) return false;
+				const data = await response.json();
+				return data.authenticated === true;
+			} catch (err) {
+				return false;
+			}
+		}
+
+		// Pay Now click handler — redirects to login if not authenticated,
+		// otherwise goes straight to the subscription plans page.
+		async function handlePayment(planType, amount, planName) {
+			// Find the clicked button and show a loading state
+			const btn = event && event.currentTarget ? event.currentTarget : null;
+			if (btn) {
+				btn.disabled = true;
+				const textEl = btn.querySelector('.btn-text');
+				if (textEl) { btn.dataset.origText = textEl.textContent; textEl.textContent = 'Checking…'; }
+			}
+
+			try {
+				const isLoggedIn = await checkUserLoggedIn();
+
+				// Build the destination URL (subscription plans page with plan pre-selected)
+				const subscriptionUrl = `/subscription/plans?plan=${encodeURIComponent(planType)}&amount=${encodeURIComponent(amount)}`;
+
+				if (!isLoggedIn) {
+					// Persist plan choice so the subscription page can auto-select it after login
+					sessionStorage.setItem('pendingPlan', JSON.stringify({
+						type: planType,
+						amount: amount,
+						name: planName
+					}));
+					// Send user to login; after successful login the server will redirect here
+					window.location.href = `/api/users/login-form?redirect=${encodeURIComponent(subscriptionUrl)}`;
+					return;
+				}
+
+				// Already logged in — go straight to subscription page
+				sessionStorage.setItem('selectedPlan', JSON.stringify({ type: planType, amount, name: planName }));
+				window.location.href = subscriptionUrl;
+
+			} finally {
+				// Restore button in case navigation is cancelled / slow
+				if (btn) {
+					btn.disabled = false;
+					const textEl = btn.querySelector('.btn-text');
+					if (textEl && btn.dataset.origText) textEl.textContent = btn.dataset.origText;
+				}
+			}
+		}
+
 		// Pay button icons template
 		function payIconsHTML() {
 			return `
@@ -1765,7 +1825,7 @@
 			</div>`;
 		}
 
-		// Build a dynamic plan card from API data (NO PER-DAY CALCULATIONS)
+		// Build a dynamic plan card from API data
 		function buildPlanCard(plan) {
 			const isFree = plan.isFree || plan.priceRupees === 0 || plan.price === 0;
 			const isPopular = plan.popular || plan.planType === 'QUARTERLY';
@@ -1798,7 +1858,7 @@
 				? `<div class="price-tag">₹0</div>`
 				: `<div class="price-tag">₹${price} <span>/ ${name.toLowerCase()}</span></div>`;
 
-			// CTA button
+			// CTA button - use onclick with async function
 			const ctaHTML = isFree
 				? `<a href="/api/users/register-form" class="pay-btn" style="text-decoration:none;background:var(--grad);justify-content:center"><span class="btn-text">Start Free Trial</span></a>`
 				: `<button class="pay-btn" onclick="handlePayment('${planKey}',${price},'${name}')"><span class="btn-text">Pay Now</span>${payIconsHTML()}</button>`;
@@ -1868,12 +1928,6 @@
 				const fallbackCardsHTML = fallbackPlans.map(plan => buildPlanCard(plan)).join('');
 				grid.innerHTML = staticCard.outerHTML + fallbackCardsHTML;
 			}
-		}
-
-		// Payment redirect
-		function handlePayment(planType, amount, planName) {
-			sessionStorage.setItem('selectedPlan', JSON.stringify({type: planType, amount, name: planName}));
-			window.location.href = '/subscription/plans?plan=' + planType + '&amount=' + amount;
 		}
 
 		// Smooth scroll

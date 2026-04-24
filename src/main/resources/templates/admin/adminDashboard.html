@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard — BidPilots</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Shared nav styles (from fragment) -->
+    <div th:replace="~{admin/adminNav :: adminNavStyles}"></div>
+
+    <style>
+        /* ── Layout ─────────────────────────────────────────────── */
+        .page-wrap {
+            padding-top: var(--nav-h);
+            min-height: 100vh;
+        }
+
+        .bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .bg-canvas::before {
+            content: '';
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            top: -180px;
+            right: -160px;
+            background: radial-gradient(circle, rgba(79, 142, 247, .13) 0%, transparent 70%);
+            animation: pls1 9s ease-in-out infinite alternate;
+        }
+
+        .bg-canvas::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            bottom: 5%;
+            left: -80px;
+            background: radial-gradient(circle, rgba(124, 92, 252, .11) 0%, transparent 70%);
+            animation: pls2 11s ease-in-out infinite alternate;
+        }
+
+        .bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79, 142, 247, .04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 142, 247, .04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        @keyframes pls1 {
+            to { transform: translate(30px, 50px) scale(1.08); }
+        }
+        @keyframes pls2 {
+            to { transform: translate(-25px, -40px) scale(1.12); }
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .main {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 36px 28px 60px;
+        }
+
+        /* ── Page header ─────────────────────────────────────────── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header h1 span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sub);
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Buttons ──────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            border: none;
+            transition: opacity .2s, transform .15s;
+        }
+        .btn:hover {
+            opacity: .88;
+            transform: translateY(-1px);
+        }
+        .btn-primary {
+            background: var(--grad);
+            color: #fff;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            border: 1px solid var(--border2);
+        }
+        .btn-danger {
+            background: rgba(240, 82, 106, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(240, 82, 106, 0.3);
+        }
+        .btn-warning {
+            background: rgba(245, 166, 35, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 166, 35, 0.3);
+        }
+        .btn-sm {
+            padding: 6px 13px;
+            font-size: 12.5px;
+        }
+
+        /* ── Stat cards row ──────────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        .stat-card.blue::before { background: var(--indigo); }
+        .stat-card.purple::before { background: var(--purple); }
+        .stat-card.green::before { background: var(--success); }
+        .stat-card.orange::before { background: var(--warning); }
+        .stat-card.red::before { background: var(--danger); }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+        .stat-icon.blue { background: rgba(79, 142, 247, .15); color: var(--indigo); }
+        .stat-icon.purple { background: rgba(139, 92, 246, .15); color: var(--purple); }
+        .stat-icon.green { background: rgba(34, 201, 137, .15); color: var(--success); }
+        .stat-icon.orange { background: rgba(245, 166, 35, .15); color: var(--warning); }
+        .stat-icon.red { background: rgba(240, 82, 106, .15); color: var(--danger); }
+
+        .stat-val {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: var(--sub);
+            font-weight: 500;
+        }
+        .stat-sub {
+            font-size: 11.5px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ── Section cards ───────────────────────────────────────── */
+        .section-card {
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .card-title svg { opacity: .7; }
+        .card-body { padding: 24px; }
+
+        /* ── Two-col layout ──────────────────────────────────────── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        /* ── Scraping panel ──────────────────────────────────────── */
+        .scrape-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .progress-wrap {
+            margin-bottom: 18px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            color: var(--sub);
+            margin-bottom: 8px;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--bg3);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: var(--grad);
+            transition: width .6s ease;
+        }
+        .scrape-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .scrape-stat-item {
+            background: var(--bg3);
+            border-radius: 10px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .scrape-stat-item strong {
+            display: block;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--indigo);
+        }
+        .scrape-stat-item span {
+            font-size: 11.5px;
+            color: var(--sub);
+        }
+
+        /* ── Status badge ────────────────────────────────────────── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+        .status-badge.running {
+            background: rgba(79, 142, 247, .15);
+            color: var(--indigo);
+            border: 1px solid rgba(79, 142, 247, .3);
+        }
+        .status-badge.done {
+            background: rgba(34, 201, 137, .15);
+            color: var(--success);
+            border: 1px solid rgba(34, 201, 137, .3);
+        }
+        .status-badge.idle {
+            background: rgba(148, 163, 184, .1);
+            color: var(--sub);
+            border: 1px solid rgba(148, 163, 184, .2);
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .dot.pulse {
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,100% { opacity: 1; }
+            50% { opacity: .3; }
+        }
+
+        /* ── Table ───────────────────────────────────────────────── */
+        .tbl-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        thead tr {
+            border-bottom: 1px solid var(--border2);
+        }
+        th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+        td {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--sub);
+        }
+        tbody tr {
+            transition: background .15s;
+        }
+        tbody tr:hover {
+            background: rgba(255, 255, 255, .03);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        td.val {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* submission status */
+        .sub-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 5px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+        .sub-status.draft {
+            background: rgba(245, 166, 35, .15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 166, 35, .3);
+        }
+        .sub-status.submitted {
+            background: rgba(34, 201, 137, .15);
+            color: var(--success);
+            border: 1px solid rgba(34, 201, 137, .3);
+        }
+
+        /* ── Empty state ──────────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--muted);
+        }
+        .empty-state svg {
+            margin-bottom: 14px;
+            opacity: .3;
+        }
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* ── Danger zone ─────────────────────────────────────────── */
+        .danger-zone {
+            background: rgba(240, 82, 106, .07);
+            border: 1px solid rgba(240, 82, 106, .25);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .danger-zone h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 4px;
+        }
+        .danger-zone p {
+            font-size: 13px;
+            color: var(--sub);
+        }
+
+        /* ── Toast ───────────────────────────────────────────────── */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 9999;
+            padding: 13px 22px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            animation: slideUp .3s ease;
+            max-width: 340px;
+        }
+        #toast.success {
+            background: rgba(34, 201, 137, .2);
+            border: 1px solid rgba(34, 201, 137, .5);
+            color: var(--success);
+        }
+        #toast.error {
+            background: rgba(240, 82, 106, .2);
+            border: 1px solid rgba(240, 82, 106, .5);
+            color: var(--danger);
+        }
+        #toast.info {
+            background: rgba(79, 142, 247, .2);
+            border: 1px solid rgba(79, 142, 247, .5);
+            color: var(--indigo);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        /* ── Confirm modal ───────────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 8000;
+            background: rgba(0, 0, 0, .6);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal {
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: 18px;
+            padding: 32px;
+            max-width: 420px;
+            width: 90%;
+            animation: modalIn .25s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(.94); }
+            to { opacity: 1; transform: none; }
+        }
+        .modal h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+        .modal p {
+            font-size: 14px;
+            color: var(--sub);
+            margin-bottom: 24px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ── Loader spinner ──────────────────────────────────────── */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2.5px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            animation: spin .7s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .view-all {
+            font-size: 13px;
+            color: var(--indigo);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .view-all:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="bg-canvas">
+    <div class="bg-grid"></div>
+</div>
+
+<!-- ✅ FIXED: Navigation fragment included correctly -->
+<div th:replace="~{admin/adminNav :: adminNav}"></div>
+
+<div class="page-wrap content">
+    <main class="main">
+
+        <!-- ── Header ──────────────────────────────────────────────── -->
+        <div class="page-header">
+            <h1>
+                Admin Dashboard
+                <span id="liveTime"></span>
+            </h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="refreshAll()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                    </svg>
+                    Refresh All
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="startScraping()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Start Scraping
+                    <div class="spinner" id="scrapeSpinner"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Stat cards ──────────────────────────────────────────── -->
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-icon blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/>
+                    </svg>
+                </div>
+                <div class="stat-val" id="stat-submissions">—</div>
+                <div class="stat-label">Total Submissions</div>
+                <div class="stat-sub">All user bid price entries</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-icon purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                    </svg>
+                </div>
+                <div class="stat-val" id="stat-ministries">—</div>
+                <div class="stat-label">Ministries Scraped</div>
+                <div class="stat-sub">GeM government entities</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-icon green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                    </svg>
+                </div>
+                <div class="stat-val" id="stat-orgs">—</div>
+                <div class="stat-label">Organizations</div>
+                <div class="stat-sub">Scraped from GeM portal</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon orange">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </div>
+                <div class="stat-val" id="stat-departments">—</div>
+                <div class="stat-label">Departments</div>
+                <div class="stat-sub">Government departments indexed</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon red">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                    </svg>
+                </div>
+                <div class="stat-val" id="stat-scrape-status">Idle</div>
+                <div class="stat-label">Scraping Engine</div>
+                <div class="stat-sub" id="stat-scrape-sub">Not running</div>
+            </div>
+        </div>
+
+        <!-- ── Two-col: Scraping + Live Status ─────────────────────── -->
+        <div class="two-col">
+
+            <!-- Scraping Control Panel -->
+            <div class="section-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--indigo)">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                        </svg>
+                        Scraping Control
+                    </div>
+                    <span class="status-badge idle" id="scrapeStatusBadge">
+                        <span class="dot"></span> Idle
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="scrape-actions">
+                        <button class="btn btn-primary" onclick="startScraping()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            Start Full Scrape
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadProgress()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                            </svg>
+                            Refresh Progress
+                        </button>
+                        <button class="btn btn-warning" onclick="testMinistries()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                            </svg>
+                            Test Ministries
+                        </button>
+                    </div>
+
+                    <div class="progress-wrap">
+                        <div class="progress-label">
+                            <span id="progressLabel">Progress</span>
+                            <span id="progressPct">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="scrape-stats">
+                        <div class="scrape-stat-item">
+                            <strong id="ps-ministries">—</strong>
+                            <span>Ministries</span>
+                        </div>
+                        <div class="scrape-stat-item">
+                            <strong id="ps-orgs">—</strong>
+                            <span>Organizations</span>
+                        </div>
+                        <div class="scrape-stat-item">
+                            <strong id="ps-depts">—</strong>
+                            <span>Departments</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Scraping Status -->
+            <div class="section-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--success)">
+                            <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
+                        </svg>
+                        Scraping Stats Detail
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadStats()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div id="statsDetail" style="color:var(--sub);font-size:13.5px">
+                        <p style="margin-bottom:12px">Loading stats…</p>
+                    </div>
+
+                    <div style="margin-top:20px">
+                        <div class="danger-zone">
+                            <div>
+                                <h3>⚠️ Danger Zone</h3>
+                                <p>Permanently clears all scraped advance search data (ministries, states, orgs, departments)</p>
+                            </div>
+                            <button class="btn btn-danger btn-sm" onclick="openClearModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                </svg>
+                                Clear All Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Recent Submissions ──────────────────────────────────── -->
+        <div class="section-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--purple)">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/>
+                    </svg>
+                    Recent Submissions
+                </div>
+                <a href="/api/admin/submissions" class="view-all">View All →</a>
+            </div>
+
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Sub ID</th><th>Bid ID</th><th>Bid Number</th><th>Total Price</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="submissionsTableBody">
+                        <tr><td colspan="6"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg><p>Loading submissions…</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="clearModal">
+    <div class="modal">
+        <h3>⚠️ Clear All Scraped Data?</h3>
+        <p>This will permanently delete all Ministries, States, Organizations, and Departments from the database. This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeClearModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="clearData()">Yes, Delete Everything</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    function toast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = type;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    function updateClock() {
+        document.getElementById('liveTime').textContent = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    async function startScraping() {
+        const spinner = document.getElementById('scrapeSpinner');
+        spinner.style.display = 'block';
+        try {
+            const res = await fetch('/api/advance-search/scraping/start', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                toast('Scraping started successfully!', 'success');
+                setTimeout(loadProgress, 1500);
+            } else {
+                toast('Failed: ' + (data.message || 'Unknown error'), 'error');
+            }
+        } catch (e) {
+            toast('Network error: ' + e.message, 'error');
+        } finally {
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function loadProgress() {
+        try {
+            const res = await fetch('/api/advance-search/scraping/progress');
+            const data = await res.json();
+            const pct = data.progressPercentage || data.progress || 0;
+            const status = data.status || 'IDLE';
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressPct').textContent = Math.round(pct) + '%';
+            document.getElementById('progressLabel').textContent = data.currentTask || 'Progress';
+            document.getElementById('ps-ministries').textContent = data.ministriesCount ?? data.ministries ?? '—';
+            document.getElementById('ps-orgs').textContent = data.organizationsCount ?? data.organizations ?? '—';
+            document.getElementById('ps-depts').textContent = data.departmentsCount ?? data.departments ?? '—';
+            const badge = document.getElementById('scrapeStatusBadge');
+            if (status === 'RUNNING' || status === 'IN_PROGRESS') {
+                badge.className = 'status-badge running';
+                badge.innerHTML = '<span class="dot pulse"></span> Running';
+                document.getElementById('stat-scrape-status').textContent = 'Running';
+                document.getElementById('stat-scrape-sub').textContent = 'Scraping in progress';
+            } else if (status === 'COMPLETED') {
+                badge.className = 'status-badge done';
+                badge.innerHTML = '<span class="dot"></span> Completed';
+                document.getElementById('stat-scrape-status').textContent = 'Done';
+                document.getElementById('stat-scrape-sub').textContent = 'Last run completed';
+            } else {
+                badge.className = 'status-badge idle';
+                badge.innerHTML = '<span class="dot"></span> Idle';
+            }
+            document.getElementById('stat-ministries').textContent = data.ministriesCount ?? data.ministries ?? '—';
+            document.getElementById('stat-orgs').textContent = data.organizationsCount ?? data.organizations ?? '—';
+            document.getElementById('stat-departments').textContent = data.departmentsCount ?? data.departments ?? '—';
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/advance-search/scraping/stats');
+            const data = await res.json();
+            const container = document.getElementById('statsDetail');
+            container.innerHTML = `<div style="display:grid;gap:8px">
+                ${renderStatRow('Ministries', data.ministries ?? data.ministriesCount ?? 0)}
+                ${renderStatRow('States', data.states ?? data.statesCount ?? 0)}
+                ${renderStatRow('Organizations', data.organizations ?? data.organizationsCount ?? 0)}
+                ${renderStatRow('Departments', data.departments ?? data.departmentsCount ?? 0)}
+                ${data.lastRunAt ? renderStatRow('Last Run', new Date(data.lastRunAt).toLocaleString('en-IN')) : ''}
+            </div>`;
+        } catch (e) { document.getElementById('statsDetail').innerHTML = '<p>Could not load stats.</p>'; }
+    }
+
+    function renderStatRow(label, val) {
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);border-radius:8px">
+            <span style="color:var(--sub);font-size:13px">${label}</span>
+            <strong style="color:var(--text)">${val}</strong>
+        </div>`;
+    }
+
+    async function testMinistries() {
+        try {
+            const res = await fetch('/api/advance-search/scraping/test/scrape-ministries', { method: 'POST' });
+            const data = await res.json();
+            toast(data.message || 'Test triggered', 'info');
+        } catch (e) { toast('Test failed: ' + e.message, 'error'); }
+    }
+
+    function openClearModal() { document.getElementById('clearModal').classList.add('open'); }
+    function closeClearModal() { document.getElementById('clearModal').classList.remove('open'); }
+
+    async function clearData() {
+        closeClearModal();
+        try {
+            const res = await fetch('/api/advance-search/scraping/clear', { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { toast('All scraped data cleared.', 'success'); loadProgress(); loadStats(); }
+            else { toast('Failed: ' + (data.message || 'Error'), 'error'); }
+        } catch (e) { toast('Network error: ' + e.message, 'error'); }
+    }
+
+    async function loadSubmissions() {
+        try {
+            const res = await fetch('/api/user/submissions');
+            const data = await res.json();
+            const tbody = document.getElementById('submissionsTableBody');
+            if (!data.success || !data.submissions || data.submissions.length === 0) {
+                document.getElementById('stat-submissions').textContent = '0';
+                tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg><p>No submissions found</p></div></td></tr>`;
+                return;
+            }
+            const subs = data.submissions;
+            document.getElementById('stat-submissions').textContent = subs.length;
+            const recent = subs.slice(0, 8);
+            tbody.innerHTML = recent.map(s => `
+                <tr>
+                    <td class="val">#${s.id || s.submissionId || '—'}</td>
+                    <td>${s.bidId || '—'}</td>
+                    <td>${s.bidNumber || '—'}</td>
+                    <td class="val">₹${s.totalPrice ? Number(s.totalPrice).toLocaleString('en-IN') : '—'}</td>
+                    <td><span class="sub-status ${(s.status || '').toLowerCase()}">${s.status || '—'}</span></td>
+                    <td><div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" onclick="viewSubmission(${s.bidId})">View</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSubmission(${s.id || s.submissionId})">Delete</button></div></td>
+                </tr>`).join('');
+        } catch (e) { console.error(e); document.getElementById('stat-submissions').textContent = 'Err'; }
+    }
+
+    function viewSubmission(bidId) { if (bidId) window.location.href = `/api/admin/submissions?bidId=${bidId}`; }
+    async function deleteSubmission(id) {
+        if (!id || !confirm(`Delete submission #${id}? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`/api/user/submissions/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { toast('Submission deleted.', 'success'); loadSubmissions(); }
+            else toast('Failed: ' + data.message, 'error');
+        } catch (e) { toast('Error: ' + e.message, 'error'); }
+    }
+
+    function refreshAll() { loadProgress(); loadStats(); loadSubmissions(); toast('Dashboard refreshed', 'info'); }
+
+    loadProgress();
+    loadStats();
+    loadSubmissions();
+
+    document.getElementById('clearModal').addEventListener('click', function(e) {
+        if (e.target === this) closeClearModal();
+    });
+</script>
+</body>
+</html>

@@ -21,9 +21,10 @@ public class SubscriptionScheduler {
     // Inject EmailService here when ready:
     // private final EmailService emailService;
 
-    /**
-     * Every day at 9:00 AM — mark TRIAL/ACTIVE as EXPIRED if end date passed.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Daily 9:00 AM — Mark TRIAL/ACTIVE as EXPIRED if end date passed
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Scheduled(cron = "0 0 9 * * *")
     @Transactional
     public void expireStaleSubscriptions() {
@@ -31,32 +32,33 @@ public class SubscriptionScheduler {
                 subscriptionRepository.findExpiredButNotMarked(LocalDateTime.now());
 
         if (expired.isEmpty()) {
-            log.info("✅ [Sub Scheduler] No subscriptions to expire");
+            log.info("✅ [Scheduler] No subscriptions to expire");
             return;
         }
 
         expired.forEach(s -> {
-            log.info("⏰ [Sub Scheduler] Expiring id={} userId={} was={}",
-                    s.getId(), s.getUserId(), s.getStatus());
+            log.info("⏰ [Scheduler] Expiring id={} userId={} was={} endDate={}",
+                    s.getId(), s.getUserId(), s.getStatus(), s.getEndDate());
             s.setStatus(SubscriptionStatus.EXPIRED);
         });
 
         subscriptionRepository.saveAll(expired);
-        log.info("✅ [Sub Scheduler] Expired {} subscriptions", expired.size());
+        log.info("✅ [Scheduler] Expired {} subscription(s)", expired.size());
     }
 
-    /**
-     * Every day at 10:00 AM — warn trial users with <= 7 days left.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Daily 10:00 AM — Warn trial users with ≤ 7 days left
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Scheduled(cron = "0 0 10 * * *")
     public void sendTrialExpiryWarnings() {
         LocalDateTime now      = LocalDateTime.now();
-        LocalDateTime sevenDays = now.plusDays(7);
+        LocalDateTime sevenDay = now.plusDays(7);
 
         List<Subscription> expiring =
-                subscriptionRepository.findTrialsExpiringSoon(now, sevenDays);
+                subscriptionRepository.findTrialsExpiringSoon(now, sevenDay);
 
-        log.info("📧 [Sub Scheduler] {} trial(s) expiring in <= 7 days", expiring.size());
+        log.info("📧 [Scheduler] {} trial(s) expiring in ≤ 7 days", expiring.size());
 
         for (Subscription sub : expiring) {
             log.info("📧 Trial expiry warning → userId={} daysLeft={}",
@@ -65,9 +67,10 @@ public class SubscriptionScheduler {
         }
     }
 
-    /**
-     * Every day at 10:30 AM — remind paid users with <= 3 days left to renew.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Daily 10:30 AM — Remind paid users with ≤ 3 days left to renew
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Scheduled(cron = "0 30 10 * * *")
     public void sendRenewalReminders() {
         LocalDateTime now      = LocalDateTime.now();
@@ -76,12 +79,28 @@ public class SubscriptionScheduler {
         List<Subscription> expiring =
                 subscriptionRepository.findActiveExpiringSoon(now, threeDays);
 
-        log.info("📧 [Sub Scheduler] {} paid subscription(s) expiring in <= 3 days", expiring.size());
+        log.info("📧 [Scheduler] {} paid subscription(s) expiring in ≤ 3 days", expiring.size());
 
         for (Subscription sub : expiring) {
             log.info("📧 Renewal reminder → userId={} plan={} daysLeft={}",
                     sub.getUserId(), sub.getPlanDuration().getDisplayName(), sub.daysRemaining());
             // emailService.sendRenewalReminder(sub.getUserId(), sub.getPlanDuration(), sub.daysRemaining());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Every hour — Clean up PENDING records older than 1 hour
+    // Razorpay orders expire in 15 min; this prevents orphaned PENDING rows
+    // when a user opens payment modal but never completes it
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void cleanupStalePendingSubscriptions() {
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(1);
+        int deleted = subscriptionRepository.deleteStalePendingSubscriptions(cutoff);
+        if (deleted > 0) {
+            log.info("🧹 [Scheduler] Cleaned up {} stale PENDING subscription(s)", deleted);
         }
     }
 }

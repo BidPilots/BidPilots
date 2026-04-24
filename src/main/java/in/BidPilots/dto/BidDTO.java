@@ -22,6 +22,7 @@ public class BidDTO {
     private String bidType;
     private Boolean isActive;
     private Boolean isDeactive;
+    private Boolean isFinalized;   // ← ADDED: required by frontend isActive() / isBidClosed()
     private String state;
     private Long stateId;
     private String city;
@@ -46,6 +47,7 @@ public class BidDTO {
         dto.setBidType(bid.getBidType());
         dto.setIsActive(bid.getIsActive());
         dto.setIsDeactive(bid.getIsDeactive());
+        dto.setIsFinalized(bid.getIsFinalized());  // ← ADDED: maps isFinalized to DTO
         
         if (bid.getState() != null) {
             dto.setState(bid.getState().getStateName());

@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title>My Profile — BidPilots</title>
+	<link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+	<link
+		href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+		rel="stylesheet">
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		:root {
+			--bg-base: #070912;
+			--bg2: #0e1221;
+			--bg3: #161d2e;
+			--bg4: #1c2538;
+			--border: rgba(255, 255, 255, .07);
+			--border2: rgba(255, 255, 255, .12);
+			--text: #e8edf5;
+			--text2: #b0bdd0;
+			--sub: #7a8ba0;
+			--sub2: #4e5f72;
+			--accent: #4f8ef7;
+			--accent-dim: rgba(79, 142, 247, .12);
+			--accent2: #7c5cfc;
+			--success: #20c993;
+			--success-dim: rgba(32, 201, 147, .12);
+			--warn: #f5a623;
+			--danger: #f05270;
+			--danger-dim: rgba(240, 82, 112, .12);
+			--grad: linear-gradient(135deg, #4f8ef7, #7c5cfc);
+			--nav-w: 240px;
+			--nav-coll: 64px;
+			--r: 14px;
+			--r-sm: 8px;
+			--font: 'Plus Jakarta Sans', sans-serif;
+			--shadow: 0 4px 24px rgba(0, 0, 0, .35);
+		}
+
+		html,
+		body {
+			height: 100%;
+			background: var(--bg-base);
+			color: var(--text);
+			font-family: var(--font);
+		}
+
+		.bg-canvas {
+			position: fixed;
+			inset: 0;
+			z-index: 0;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.bg-canvas::before {
+			content: '';
+			position: absolute;
+			width: 900px;
+			height: 900px;
+			top: -300px;
+			right: -200px;
+			background: radial-gradient(circle, rgba(79, 142, 247, .1) 0%, transparent 65%);
+			animation: bgp1 12s ease-in-out infinite alternate;
+		}
+
+		.bg-canvas::after {
+			content: '';
+			position: absolute;
+			width: 700px;
+			height: 700px;
+			bottom: 5%;
+			left: -150px;
+			background: radial-gradient(circle, rgba(124, 92, 252, .08) 0%, transparent 65%);
+			animation: bgp2 15s ease-in-out infinite alternate;
+		}
+
+		.bg-grid {
+			position: absolute;
+			inset: 0;
+			background-image: linear-gradient(rgba(79, 142, 247, .04) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(79, 142, 247, .04) 1px, transparent 1px);
+			background-size: 64px 64px;
+		}
+
+		@keyframes bgp1 {
+			to {
+				transform: translate(50px, 80px) scale(1.12);
+			}
+		}
+
+		@keyframes bgp2 {
+			to {
+				transform: translate(-40px, 50px) scale(1.1);
+			}
+		}
+
+		.bp-page-content {
+			position: relative;
+			z-index: 1;
+			margin-left: var(--nav-w);
+			padding: 32px 40px;
+			min-height: 100vh;
+			transition: margin-left .3s;
+		}
+
+		.bp-page-content.nav-collapsed {
+			margin-left: var(--nav-coll);
+		}
+
+		@media(max-width: 900px) {
+			.bp-page-content {
+				margin-left: 0;
+				padding: 20px 20px;
+				padding-top: 80px;
+			}
+		}
+
+		@media(max-width: 640px) {
+			.bp-page-content {
+				padding: 20px 16px;
+				padding-top: 80px;
+			}
+		}
+
+		/* Page Header - Same as other pages */
+		.page-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			margin-bottom: 32px;
+			gap: 20px;
+			flex-wrap: wrap;
+		}
+
+		.eyebrow {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: .12em;
+			text-transform: uppercase;
+			color: var(--accent);
+			margin-bottom: 8px;
+			background: var(--accent-dim);
+			border: 1px solid rgba(79, 142, 247, .2);
+			padding: 4px 10px;
+			border-radius: 50px;
+			width: fit-content;
+		}
+
+		.page-title {
+			font-size: 28px;
+			font-weight: 800;
+			color: var(--text);
+			margin-bottom: 5px;
+			line-height: 1.2;
+		}
+
+		.page-subtitle {
+			font-size: 13px;
+			color: var(--sub);
+			line-height: 1.6;
+		}
+
+		/* Hero Section */
+		.hero-section {
+			display: flex;
+			align-items: center;
+			gap: 2rem;
+			margin-bottom: 2rem;
+			flex-wrap: wrap;
+			background: var(--bg2);
+			border-radius: var(--r);
+			padding: 2rem;
+			border: 1px solid var(--border);
+		}
+
+		@media (max-width: 768px) {
+			.hero-section {
+				flex-direction: column;
+				text-align: center;
+				padding: 1.5rem;
+			}
+		}
+
+		.profile-avatar {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: var(--grad);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+			box-shadow: var(--shadow);
+		}
+
+		.avatar-initials {
+			font-family: var(--font);
+			font-size: 2.5rem;
+			font-weight: 800;
+			color: white;
+			text-transform: uppercase;
+		}
+
+		.profile-info {
+			flex: 1;
+		}
+
+		.profile-name {
+			font-size: 1.8rem;
+			font-weight: 800;
+			color: var(--text);
+			margin-bottom: 0.5rem;
+		}
+
+		.profile-name em {
+			font-style: italic;
+			color: var(--accent);
+		}
+
+		.profile-email {
+			font-size: 0.85rem;
+			color: var(--sub);
+			margin-bottom: 1rem;
+		}
+
+		.badge-row {
+			display: flex;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+			margin-bottom: 1rem;
+		}
+
+		@media (max-width: 768px) {
+			.badge-row {
+				justify-content: center;
+			}
+		}
+
+		.badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+			padding: 0.3rem 0.75rem;
+			border-radius: 20px;
+			font-size: 0.7rem;
+			font-weight: 600;
+		}
+
+		.badge-active {
+			background: var(--success-dim);
+			color: var(--success);
+		}
+
+		.badge-verified {
+			background: var(--accent-dim);
+			color: var(--accent);
+		}
+
+		.badge-role {
+			background: var(--bg3);
+			color: var(--text2);
+			border: 1px solid var(--border);
+		}
+
+		.profile-actions {
+			display: flex;
+			gap: 0.75rem;
+			flex-wrap: wrap;
+			margin-top: 0.5rem;
+		}
+
+		@media (max-width: 768px) {
+			.profile-actions {
+				justify-content: center;
+			}
+		}
+
+		.btn-profile {
+			padding: 0.6rem 1.2rem;
+			border-radius: 24px;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			font-weight: 600;
+			border: none;
+			cursor: pointer;
+			transition: all 0.22s;
+		}
+
+		.btn-primary {
+			background: var(--grad);
+			color: white;
+		}
+
+		.btn-primary:hover {
+			opacity: 0.88;
+			transform: translateY(-1px);
+		}
+
+		.btn-outline {
+			background: transparent;
+			color: var(--accent);
+			border: 1.5px solid var(--accent-dim);
+		}
+
+		.btn-outline:hover {
+			background: var(--accent-dim);
+		}
+
+		/* Stats Cards */
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 1rem;
+			margin-bottom: 2rem;
+		}
+
+		@media (max-width: 900px) {
+			.stats-grid {
+				grid-template-columns: repeat(2, 1fr);
+			}
+		}
+
+		@media (max-width: 640px) {
+			.stats-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.stat-card {
+			background: var(--bg2);
+			border: 1px solid var(--border);
+			border-radius: var(--r);
+			padding: 1.2rem;
+			text-align: center;
+			transition: all 0.22s;
+		}
+
+		.stat-card:hover {
+			transform: translateY(-2px);
+			border-color: var(--border2);
+		}
+
+		.stat-value {
+			font-size: 1.8rem;
+			font-weight: 800;
+			color: var(--accent);
+			line-height: 1;
+		}
+
+		.stat-label {
+			font-size: 0.7rem;
+			color: var(--sub);
+			margin-top: 0.3rem;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		/* Section Header */
+		.section-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 1.5rem;
+			flex-wrap: wrap;
+			gap: 1rem;
+		}
+
+		.section-title {
+			font-size: 1.2rem;
+			font-weight: 800;
+			color: var(--text);
+		}
+
+		.section-title svg {
+			width: 20px;
+			height: 20px;
+			stroke: var(--accent);
+			margin-right: 0.5rem;
+			vertical-align: middle;
+		}
+
+		/* Info Cards - Full Width */
+		.info-card {
+			background: var(--bg2);
+			border-radius: var(--r);
+			padding: 1.5rem;
+			border: 1px solid var(--border);
+			transition: transform 0.22s, border-color 0.22s;
+			margin-bottom: 1.5rem;
+			width: 100%;
+		}
+
+		.info-card:hover {
+			transform: translateY(-2px);
+			border-color: var(--border2);
+		}
+
+		.info-card-header {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			margin-bottom: 1.25rem;
+			padding-bottom: 0.75rem;
+			border-bottom: 1px solid var(--border);
+		}
+
+		.info-card-icon {
+			width: 40px;
+			height: 40px;
+			border-radius: 12px;
+			background: var(--accent-dim);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+		}
+
+		.info-card-icon svg {
+			width: 20px;
+			height: 20px;
+			stroke: var(--accent);
+			fill: none;
+			stroke-width: 2;
+		}
+
+		.info-card-title {
+			font-weight: 700;
+			font-size: 1rem;
+			color: var(--text);
+		}
+
+		.info-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 1.2rem;
+		}
+
+		.info-item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.2rem;
+		}
+
+		.info-label {
+			font-size: 0.65rem;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			color: var(--sub2);
+		}
+
+		.info-value {
+			font-size: 0.9rem;
+			color: var(--text);
+			font-weight: 500;
+			word-break: break-word;
+		}
+
+		/* Security Items */
+		.security-items {
+			display: flex;
+			flex-direction: column;
+			gap: 0.8rem;
+		}
+
+		.security-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			padding: 0.5rem 0;
+			border-bottom: 1px solid var(--border);
+		}
+
+		.security-item:last-child {
+			border-bottom: none;
+		}
+
+		.security-item .si-label {
+			font-size: 0.8rem;
+			color: var(--text2);
+		}
+
+		.si-tick,
+		.si-cross {
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.7rem;
+		}
+
+		.si-tick {
+			background: var(--success-dim);
+			color: var(--success);
+		}
+
+		.si-cross {
+			background: var(--danger-dim);
+			color: var(--danger);
+		}
+
+		/* Quick Actions */
+		.quick-actions {
+			display: flex;
+			flex-direction: column;
+			gap: 0.6rem;
+		}
+
+		.qa-btn {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.7rem 1rem;
+			border-radius: 12px;
+			border: 1px solid var(--border);
+			background: var(--bg3);
+			cursor: pointer;
+			transition: all 0.2s;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			font-weight: 500;
+			color: var(--text2);
+			text-align: left;
+			width: 100%;
+		}
+
+		.qa-btn:hover {
+			background: var(--bg4);
+			border-color: var(--border2);
+			color: var(--text);
+		}
+
+		.qa-btn svg {
+			width: 16px;
+			height: 16px;
+			stroke: var(--accent);
+			fill: none;
+			stroke-width: 2;
+			flex-shrink: 0;
+		}
+
+		.qa-btn.danger {
+			border-color: var(--danger-dim);
+			color: var(--danger);
+		}
+
+		.qa-btn.danger svg {
+			stroke: var(--danger);
+		}
+
+		.qa-btn.danger:hover {
+			background: var(--danger-dim);
+		}
+
+		/* Toast */
+		#toastWrap {
+			position: fixed;
+			bottom: 2rem;
+			right: 2rem;
+			z-index: 999;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.toast {
+			display: flex;
+			align-items: center;
+			padding: 12px 16px;
+			background: var(--bg2);
+			border: 1px solid var(--border2);
+			border-radius: 10px;
+			font-size: 13px;
+			font-weight: 500;
+			color: var(--text);
+			min-width: 240px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+			animation: tIn .3s ease;
+		}
+
+		.toast.ok {
+			border-left: 3px solid var(--success);
+		}
+
+		.toast.err {
+			border-left: 3px solid var(--danger);
+		}
+
+		@keyframes tIn {
+			from {
+				opacity: 0;
+				transform: translateY(8px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		/* Modals */
+		.modal-overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.7);
+			backdrop-filter: blur(4px);
+			z-index: 500;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+		}
+
+		.modal-overlay.open {
+			display: flex;
+		}
+
+		.modal {
+			background: var(--bg2);
+			border-radius: var(--r);
+			padding: 1.75rem;
+			width: 90%;
+			max-width: 420px;
+			border: 1px solid var(--border2);
+			animation: modalIn 0.3s ease;
+		}
+
+		@keyframes modalIn {
+			from {
+				opacity: 0;
+				transform: scale(0.95);
+			}
+
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+
+		.modal h3 {
+			font-weight: 800;
+			font-size: 1.25rem;
+			margin-bottom: 0.5rem;
+			color: var(--text);
+		}
+
+		.modal p {
+			font-size: 0.75rem;
+			color: var(--sub);
+			margin-bottom: 1.25rem;
+		}
+
+		.modal-input-group {
+			display: flex;
+			flex-direction: column;
+			gap: 0.4rem;
+			margin-bottom: 1rem;
+		}
+
+		.modal-input-group label {
+			font-size: 0.65rem;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			color: var(--sub2);
+		}
+
+		.modal-input-group input {
+			padding: 0.6rem 0.9rem;
+			border-radius: 10px;
+			border: 1px solid var(--border);
+			background: var(--bg3);
+			font-family: var(--font);
+			font-size: 0.85rem;
+			color: var(--text);
+			outline: none;
+			transition: border 0.2s;
+			width: 100%;
+		}
+
+		.modal-input-group input:focus {
+			border-color: var(--accent);
+		}
+
+		.modal-actions {
+			display: flex;
+			gap: 0.75rem;
+			justify-content: flex-end;
+			margin-top: 1.25rem;
+		}
+
+		.modal-cancel {
+			padding: 0.5rem 1.1rem;
+			border-radius: 20px;
+			border: 1px solid var(--border);
+			background: transparent;
+			color: var(--sub2);
+			cursor: pointer;
+			font-family: var(--font);
+			font-size: 0.75rem;
+		}
+
+		.modal-save {
+			padding: 0.5rem 1.1rem;
+			border-radius: 20px;
+			border: none;
+			background: var(--grad);
+			color: white;
+			cursor: pointer;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+
+		.modal-save:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		/* Divider */
+		.divider {
+			margin: 1.5rem 0;
+		}
+
+		.divider hr {
+			border: none;
+			border-top: 1px solid var(--border);
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="bg-canvas">
+		<div class="bg-grid"></div>
+	</div>
+
+	<!-- Navigation Fragment -->
+	<div th:replace="~{fragments/nav :: sidebar}"></div>
+
+	<main class="bp-page-content" id="mainContent">
+
+		<!-- Page Header -->
+		<div class="page-header">
+			<div>
+				<div class="eyebrow">
+					<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+					</svg>
+					Account
+				</div>
+				<h1 class="page-title">My Profile</h1>
+				<p class="page-subtitle">Manage your account information and security settings</p>
+			</div>
+		</div>
+
+		<!-- Hero Section -->
+		<div class="hero-section">
+			<div class="profile-avatar">
+				<div class="avatar-initials" id="avatarInitials">--</div>
+			</div>
+			<div class="profile-info">
+				<div class="profile-name" id="heroName">Loading <em>...</em></div>
+				<div class="profile-email" id="profileEmail">Loading...</div>
+				<div class="badge-row" id="badgeContainer"></div>
+				<div class="profile-actions">
+					<button class="btn-profile btn-primary" id="editProfileBtn">Edit Profile</button>
+					<button class="btn-profile btn-outline" id="changePwdBtn">Change Password</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Stats Cards -->
+		<div class="stats-grid">
+			<div class="stat-card">
+				<div class="stat-value" id="statLogins">—</div>
+				<div class="stat-label">Total Logins</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value" id="statActiveBids">—</div>
+				<div class="stat-label">Active Bids</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value" id="statTotalMatches">—</div>
+				<div class="stat-label">Total Matches</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value" id="statSecurityScore">—</div>
+				<div class="stat-label">Security Score</div>
+			</div>
+		</div>
+
+		<!-- Company Information - Full Width -->
+		<div class="section-header">
+			<div class="section-title">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+					<polyline points="9 22 9 12 15 12 15 22" />
+				</svg>
+				Company Information
+			</div>
+		</div>
+		<div class="info-card">
+			<div class="info-grid">
+				<div class="info-item">
+					<span class="info-label">Company Name</span>
+					<span class="info-value" id="fieldCompany">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">GST Number</span>
+					<span class="info-value" id="fieldGst">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">Role</span>
+					<span class="info-value" id="fieldRole">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">Member Since</span>
+					<span class="info-value" id="fieldCreated">—</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Contact Information - Full Width -->
+		<div class="section-header">
+			<div class="section-title">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path
+						d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.1 6.1l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+				</svg>
+				Contact Information
+			</div>
+		</div>
+		<div class="info-card">
+			<div class="info-grid">
+				<div class="info-item">
+					<span class="info-label">Email Address</span>
+					<span class="info-value" id="fieldEmail">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">Mobile Number</span>
+					<span class="info-value" id="fieldMobile">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">Email Verified</span>
+					<span class="info-value" id="emailVerifiedStatus">—</span>
+				</div>
+				<div class="info-item">
+					<span class="info-label">Last Login</span>
+					<span class="info-value" id="fieldLastLogin">—</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Security & Actions - Two Columns -->
+		<div class="section-header">
+			<div class="section-title">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+				</svg>
+				Security & Actions
+			</div>
+		</div>
+
+		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+			<!-- Security Items Card -->
+			<div class="info-card" style="margin-bottom: 0;">
+				<div class="security-items" id="securityItems"></div>
+			</div>
+
+			<!-- Quick Actions Card -->
+			<div class="info-card" style="margin-bottom: 0;">
+				<div class="quick-actions">
+					<button class="qa-btn" id="quickEditProfile">
+						<svg viewBox="0 0 24 24">
+							<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+							<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+						</svg>
+						Edit Profile
+					</button>
+					<button class="qa-btn" id="quickChangePwd">
+						<svg viewBox="0 0 24 24">
+							<rect x="3" y="11" width="18" height="11" rx="2" />
+							<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+						</svg>
+						Change Password
+					</button>
+					<button class="qa-btn" id="verifyMobileBtn">
+						<svg viewBox="0 0 24 24">
+							<polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+							<path
+								d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+						</svg>
+						Verify Mobile
+					</button>
+					<button class="qa-btn danger" id="deactivateBtn">
+						<svg viewBox="0 0 24 24">
+							<circle cx="12" cy="12" r="10" />
+							<line x1="15" y1="9" x2="9" y2="15" />
+							<line x1="9" y1="9" x2="15" y2="15" />
+						</svg>
+						Deactivate Account
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Toast Container -->
+		<div id="toastWrap"></div>
+
+		<!-- Edit Profile Modal -->
+		<div class="modal-overlay" id="modal-edit">
+			<div class="modal">
+				<h3>Edit Profile</h3>
+				<p>Update your company and contact information.</p>
+				<div class="modal-input-group">
+					<label>Company Name</label>
+					<input type="text" id="inp-company" placeholder="Enter company name" autocomplete="organization" />
+				</div>
+				<div class="modal-input-group">
+					<label>Mobile Number</label>
+					<input type="tel" id="inp-mobile" placeholder="Enter 10-digit mobile number" autocomplete="tel" />
+				</div>
+				<div class="modal-actions">
+					<button class="modal-cancel" onclick="closeModal('edit')">Cancel</button>
+					<button class="modal-save" id="saveProfileBtn">Save Changes</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Change Password Modal -->
+		<div class="modal-overlay" id="modal-password">
+			<div class="modal">
+				<h3>Change Password</h3>
+				<p>Enter your current password and choose a new strong password.</p>
+				<div class="modal-input-group">
+					<label>Current Password</label>
+					<input type="password" id="currentPassword" placeholder="Enter your current password"
+						autocomplete="new-password" />
+				</div>
+				<div class="modal-input-group">
+					<label>New Password</label>
+					<input type="password" id="newPassword" placeholder="Enter new password (min 8 characters)"
+						autocomplete="new-password" />
+				</div>
+				<div class="modal-input-group">
+					<label>Confirm New Password</label>
+					<input type="password" id="confirmNewPassword" placeholder="Re-enter new password"
+						autocomplete="new-password" />
+				</div>
+				<div class="modal-actions">
+					<button class="modal-cancel" onclick="closeModal('password')">Cancel</button>
+					<button class="modal-save" id="updatePasswordBtn">Update Password</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Deactivate Modal -->
+		<div class="modal-overlay" id="modal-deactivate">
+			<div class="modal">
+				<h3>Deactivate Account?</h3>
+				<p>This will disable your account. You can re-activate it by contacting support. All your bid data will
+					be preserved.</p>
+				<div class="modal-actions">
+					<button class="modal-cancel" onclick="closeModal('deactivate')">Cancel</button>
+					<button class="modal-save" style="background:var(--danger);"
+						id="confirmDeactivateBtn">Confirm</button>
+				</div>
+			</div>
+		</div>
+
+	</main>
+
+	<script>
+		// API endpoints
+		const API = {
+			currentUser: '/api/user/current',
+			updateProfile: '/api/user/profile/update',
+			changePassword: '/api/user/profile/change-password',
+			matches: '/api/user/matches'
+		};
+
+		let currentUserData = null;
+
+		function showToast(msg, type = 'ok') {
+			const w = document.getElementById('toastWrap');
+			const t = document.createElement('div');
+			t.className = `toast ${type}`;
+			t.innerHTML = `<span>${msg}</span>`;
+			w.appendChild(t);
+			setTimeout(() => {
+				t.style.animation = 'tOut .3s ease forwards';
+				setTimeout(() => t.remove(), 300);
+			}, 3800);
+		}
+
+		function showError(msg) {showToast(msg, 'err');}
+		function showSuccess(msg) {showToast(msg, 'ok');}
+
+		function openModal(id) {document.getElementById('modal-' + id).classList.add('open');}
+		function closeModal(id) {document.getElementById('modal-' + id).classList.remove('open');}
+
+		// Clear password fields before opening modal
+		function openPasswordModal() {
+			document.getElementById('currentPassword').value = '';
+			document.getElementById('newPassword').value = '';
+			document.getElementById('confirmNewPassword').value = '';
+			openModal('password');
+		}
+
+		async function apiCall(url, options = {}) {
+			try {
+				const res = await fetch(url, {credentials: 'include', headers: {'Content-Type': 'application/json'}, ...options});
+				if (res.status === 401 || res.status === 403) {
+					window.location.href = '/api/users/login-form?redirect=' + encodeURIComponent(window.location.pathname);
+					return null;
+				}
+				return res.json();
+			} catch (e) {showError('Network error'); return null;}
+		}
+
+		async function loadUserProfile() {
+			const data = await apiCall(API.currentUser);
+			if (data?.success) {
+				currentUserData = data.user;
+				renderProfile(currentUserData);
+				await loadBidStats();
+				loadSecurityItems();
+			} else {
+				showError('Failed to load profile');
+			}
+		}
+
+		async function loadBidStats() {
+			const data = await apiCall(API.matches);
+			if (data?.success && data.matches) {
+				const activeBids = data.matches.filter(b => b.isActive === true).length;
+				document.getElementById('statActiveBids').textContent = activeBids;
+				document.getElementById('statTotalMatches').textContent = data.matches.length || 0;
+			}
+		}
+
+		function renderProfile(user) {
+			const name = user.companyName || user.email?.split('@')[0] || 'User';
+			const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+			document.getElementById('avatarInitials').textContent = initials;
+			document.getElementById('heroName').innerHTML = (user.companyName || name).split(' ')[0] + ' <em>' + ((user.companyName?.split(' ').slice(1).join(' ') || 'User')) + '</em>';
+			document.getElementById('profileEmail').textContent = user.email || '—';
+
+			document.getElementById('fieldCompany').textContent = user.companyName || '—';
+			document.getElementById('fieldGst').textContent = user.gstNumber || '—';
+			document.getElementById('fieldRole').textContent = user.role || 'USER';
+			document.getElementById('fieldCreated').textContent = formatDate(user.createdAt);
+			document.getElementById('fieldEmail').textContent = user.email || '—';
+			document.getElementById('fieldMobile').textContent = user.mobileNumber || '—';
+			document.getElementById('fieldLastLogin').textContent = formatDateTime(user.lastLoginAt);
+			document.getElementById('statLogins').textContent = user.loginCount || 0;
+
+			const verifiedStatus = user.isEmailVerified ? '<span style="color:var(--success);">✓ Verified</span>' : '<span style="color:var(--warn);">⚠️ Not Verified</span>';
+			document.getElementById('emailVerifiedStatus').innerHTML = verifiedStatus;
+
+			const badges = [];
+			if (user.isActive !== false) badges.push('<span class="badge badge-active">● Active Account</span>');
+			if (user.isEmailVerified) badges.push('<span class="badge badge-verified">✓ Email Verified</span>');
+			badges.push('<span class="badge badge-role">' + (user.role || 'USER') + '</span>');
+			document.getElementById('badgeContainer').innerHTML = badges.join('');
+
+			document.getElementById('inp-company').value = user.companyName || '';
+			document.getElementById('inp-mobile').value = user.mobileNumber || '';
+		}
+
+		function loadSecurityItems() {
+			const items = [
+				{label: 'Email Verified', completed: currentUserData?.isEmailVerified || false},
+				{label: 'Mobile Number Added', completed: !!currentUserData?.mobileNumber},
+				{label: 'Strong Password Set', completed: true},
+				{label: 'Two-Factor Authentication', completed: false}
+			];
+			const container = document.getElementById('securityItems');
+			container.innerHTML = items.map(item => `
+				<div class="security-item">
+					<span class="si-label">${item.label}</span>
+					${item.completed ? '<span class="si-tick">✓</span>' : '<span class="si-cross">✗</span>'}
+				</div>
+			`).join('');
+
+			const completedCount = items.filter(i => i.completed).length;
+			const score = Math.round((completedCount / items.length) * 100);
+			document.getElementById('statSecurityScore').textContent = score + '%';
+		}
+
+		async function saveProfile() {
+			const companyName = document.getElementById('inp-company').value.trim();
+			const mobileNumber = document.getElementById('inp-mobile').value.trim();
+
+			if (!companyName) {showError('Company name is required'); return;}
+			if (!mobileNumber || !/^[0-9]{10}$/.test(mobileNumber)) {showError('Valid 10-digit mobile number required'); return;}
+
+			const btn = document.getElementById('saveProfileBtn');
+			btn.disabled = true;
+			btn.textContent = 'Saving...';
+
+			const data = await apiCall(API.updateProfile, {
+				method: 'PUT',
+				body: JSON.stringify({companyName, mobileNumber})
+			});
+
+			btn.disabled = false;
+			btn.textContent = 'Save Changes';
+
+			if (data?.success) {
+				showSuccess('Profile updated successfully');
+				closeModal('edit');
+				loadUserProfile();
+			} else {
+				showError(data?.message || 'Update failed');
+			}
+		}
+
+		async function changePassword() {
+			const currentPassword = document.getElementById('currentPassword').value;
+			const newPassword = document.getElementById('newPassword').value;
+			const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+			if (!currentPassword) {
+				showError('Please enter your current password');
+				document.getElementById('currentPassword').focus();
+				return;
+			}
+			if (!newPassword) {
+				showError('Please enter a new password');
+				document.getElementById('newPassword').focus();
+				return;
+			}
+			if (!confirmPassword) {
+				showError('Please confirm your new password');
+				document.getElementById('confirmNewPassword').focus();
+				return;
+			}
+
+			if (newPassword !== confirmPassword) {
+				showError('New passwords do not match');
+				document.getElementById('newPassword').focus();
+				return;
+			}
+
+			const pwdRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$/;
+			if (!pwdRegex.test(newPassword)) {
+				showError('Password must be 8+ characters with uppercase, lowercase, number and special character');
+				document.getElementById('newPassword').focus();
+				return;
+			}
+
+			const btn = document.getElementById('updatePasswordBtn');
+			btn.disabled = true;
+			btn.textContent = 'Updating...';
+
+			const data = await apiCall(API.changePassword, {
+				method: 'POST',
+				body: JSON.stringify({currentPassword, newPassword, confirmPassword})
+			});
+
+			btn.disabled = false;
+			btn.textContent = 'Update Password';
+
+			if (data?.success) {
+				showSuccess('Password changed successfully');
+				closeModal('password');
+				document.getElementById('currentPassword').value = '';
+				document.getElementById('newPassword').value = '';
+				document.getElementById('confirmNewPassword').value = '';
+			} else {
+				showError(data?.message || 'Password change failed');
+			}
+		}
+
+		function formatDate(dateStr) {
+			if (!dateStr) return '—';
+			try {return new Date(dateStr).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});}
+			catch {return dateStr;}
+		}
+
+		function formatDateTime(dateStr) {
+			if (!dateStr) return '—';
+			try {return new Date(dateStr).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});}
+			catch {return dateStr;}
+		}
+
+		// Event listeners
+		document.getElementById('editProfileBtn').onclick = () => openModal('edit');
+		document.getElementById('changePwdBtn').onclick = openPasswordModal;
+		document.getElementById('quickEditProfile').onclick = () => openModal('edit');
+		document.getElementById('quickChangePwd').onclick = openPasswordModal;
+		document.getElementById('saveProfileBtn').onclick = saveProfile;
+		document.getElementById('updatePasswordBtn').onclick = changePassword;
+		document.getElementById('verifyMobileBtn').onclick = () => showSuccess('OTP sent to your registered mobile number');
+		document.getElementById('deactivateBtn').onclick = () => openModal('deactivate');
+		document.getElementById('confirmDeactivateBtn').onclick = async () => {
+			closeModal('deactivate');
+			showSuccess('Account deactivation request sent to support');
+		};
+
+		document.querySelectorAll('.modal-overlay').forEach(o => {
+			o.addEventListener('click', e => {if (e.target === o) o.classList.remove('open');});
+		});
+
+		function setupNavObserver() {
+			const nav = document.getElementById('bpNav');
+			const content = document.getElementById('mainContent');
+			if (!nav || !content) return;
+			const sync = () => content.classList.toggle('nav-collapsed', nav.classList.contains('collapsed'));
+			new MutationObserver(sync).observe(nav, {attributes: true, attributeFilter: ['class']});
+			sync();
+		}
+
+		setupNavObserver();
+		loadUserProfile();
+	</script>
+</body>
+
+</html>

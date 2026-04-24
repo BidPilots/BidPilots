@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOQ Manager — BidPilots Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ══ Tokens ══════════════════════════════════════════════════════════ */
+        :root {
+            --bg:           #080d14;
+            --surface:      #0d1420;
+            --surface2:     #111b2a;
+            --border:       rgba(255,255,255,0.07);
+            --border2:      rgba(255,255,255,0.12);
+            --text:         #94a3b8;
+            --hi:           #f1f5f9;
+            --accent:       #4f8ef7;
+            --accent2:      #7c5cfc;
+            --success:      #22c989;
+            --warn:         #f5a623;
+            --danger:       #f0526a;
+            --nav-w:        240px;
+            --nav-coll:     64px;
+            --t:            0.2s cubic-bezier(.4,0,.2,1);
+            --radius:       12px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13.5px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ══ Page Layout ════════════════════════════════════════════════════ */
+        .bp-page-content {
+            margin-left: var(--nav-w);
+            transition: margin-left var(--t);
+            min-height: 100vh;
+            padding: 32px;
+        }
+        .bp-page-content.nav-collapsed { margin-left: var(--nav-coll); }
+
+        @media (max-width: 768px) {
+            .bp-page-content { margin-left: 0 !important; padding: 20px 16px; }
+        }
+
+        /* ══ Page Header ════════════════════════════════════════════════════ */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--hi); letter-spacing: -0.5px; }
+        .page-sub { font-size: 13px; color: var(--text); margin-top: 2px; }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12.5px; color: var(--accent); text-decoration: none;
+            padding: 6px 12px; border: 1px solid rgba(79,142,247,.25);
+            border-radius: 8px; background: rgba(79,142,247,.07);
+            transition: background var(--t), border-color var(--t);
+        }
+        .back-link:hover { background: rgba(79,142,247,.14); border-color: rgba(79,142,247,.5); }
+        .back-link svg { width: 14px; height: 14px; }
+
+        /* ══ Stats Row ══════════════════════════════════════════════════════ */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color var(--t);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+        .stat-card.blue::before  { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+        .stat-card.green::before { background: linear-gradient(90deg, var(--success), #16a870); }
+        .stat-card.warn::before  { background: linear-gradient(90deg, var(--warn), #e8891a); }
+        .stat-card.danger::before{ background: linear-gradient(90deg, var(--danger), #c93d55); }
+        .stat-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text); opacity: .7; margin-bottom: 8px; }
+        .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--hi); line-height: 1; }
+        .stat-note  { font-size: 11px; color: var(--text); margin-top: 4px; opacity: .7; }
+
+        /* ══ Scrape Panel ═══════════════════════════════════════════════════ */
+        .scrape-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .panel-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--hi);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-title svg { width: 18px; height: 18px; color: var(--accent); }
+
+        .scrape-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: 9px; border: none;
+            font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all var(--t); white-space: nowrap;
+        }
+        .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+        .btn:disabled { opacity: .45; pointer-events: none; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(79,142,247,.3);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 28px rgba(79,142,247,.5); transform: translateY(-1px); }
+
+        .btn-success {
+            background: rgba(34,201,137,.12);
+            color: var(--success);
+            border: 1px solid rgba(34,201,137,.25);
+        }
+        .btn-success:hover { background: rgba(34,201,137,.2); border-color: rgba(34,201,137,.5); }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--hi);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.07); border-color: var(--border2); }
+
+        .btn-danger-soft {
+            background: rgba(240,82,106,.08);
+            color: var(--danger);
+            border: 1px solid rgba(240,82,106,.2);
+        }
+        .btn-danger-soft:hover { background: rgba(240,82,106,.15); border-color: rgba(240,82,106,.4); }
+
+        /* Progress bar */
+        .progress-wrap {
+            background: rgba(255,255,255,.05);
+            border-radius: 100px;
+            height: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            width: 0%;
+            transition: width 0.4s ease;
+            position: relative;
+        }
+        .progress-bar.indeterminate {
+            width: 40% !important;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+        @keyframes indeterminate {
+            0%   { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+        }
+
+        .scrape-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 11.5px; font-weight: 600;
+        }
+        .status-badge.idle    { background: rgba(148,163,184,.1); color: var(--text); }
+        .status-badge.running { background: rgba(79,142,247,.12); color: var(--accent); }
+        .status-badge.done    { background: rgba(34,201,137,.12); color: var(--success); }
+        .status-badge.error   { background: rgba(240,82,106,.12); color: var(--danger); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .status-badge.running .status-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+        @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+        .scrape-counters {
+            display: flex; gap: 16px; flex-wrap: wrap;
+        }
+        .counter-chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text);
+        }
+        .counter-chip span { color: var(--hi); font-weight: 500; }
+        .scrape-log-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px;
+            color: var(--text);
+            margin-top: 10px;
+            min-height: 18px;
+            transition: color 0.3s;
+        }
+        .scrape-log-text.success { color: var(--success); }
+        .scrape-log-text.error   { color: var(--danger); }
+
+        /* ══ Table Panel ════════════════════════════════════════════════════ */
+        .table-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .toolbar-left  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .search-wrap {
+            position: relative;
+        }
+        .search-wrap svg {
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            width: 14px; height: 14px; color: var(--text); pointer-events: none;
+        }
+        .search-input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--hi);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            padding: 8px 12px 8px 32px;
+            width: 260px;
+            outline: none;
+            transition: border-color var(--t), box-shadow var(--t);
+        }
+        .search-input::placeholder { color: rgba(148,163,184,.4); }
+        .search-input:focus { border-color: rgba(79,142,247,.4); box-shadow: 0 0 0 3px rgba(79,142,247,.08); }
+
+        .filter-select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--hi);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            padding: 8px 12px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 11px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: rgba(148,163,184,.6);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        thead th:first-child { padding-left: 20px; }
+        thead th:last-child  { padding-right: 20px; text-align: right; }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,.04);
+            transition: background var(--t);
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: rgba(255,255,255,.025); }
+
+        td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: var(--text);
+        }
+        td:first-child { padding-left: 20px; }
+        td:last-child  { padding-right: 20px; text-align: right; }
+
+        .td-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(148,163,184,.5);
+            width: 60px;
+        }
+        .td-gem-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .td-title {
+            max-width: 380px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--hi);
+            font-size: 13px;
+        }
+        .td-title span { cursor: help; }
+
+        .active-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 20px;
+            font-size: 10.5px; font-weight: 600;
+        }
+        .active-badge.yes { background: rgba(34,201,137,.1); color: var(--success); }
+        .active-badge.no  { background: rgba(240,82,106,.1);  color: var(--danger);  }
+
+        .action-btns { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+        .icon-btn {
+            width: 30px; height: 30px;
+            border-radius: 7px; border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all var(--t);
+        }
+        .icon-btn svg { width: 13px; height: 13px; }
+        .icon-btn:hover.edit   { background: rgba(79,142,247,.12); border-color: rgba(79,142,247,.3); color: var(--accent); }
+        .icon-btn:hover.delete { background: rgba(240,82,106,.12); border-color: rgba(240,82,106,.3); color: var(--danger); }
+        .icon-btn:hover.toggle { background: rgba(34,201,137,.12); border-color: rgba(34,201,137,.3); color: var(--success); }
+
+        /* Pagination */
+        .table-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .page-info { font-size: 12px; color: var(--text); }
+        .page-info span { color: var(--hi); font-weight: 600; }
+        .pagination { display: flex; gap: 4px; }
+        .page-btn {
+            width: 30px; height: 30px; border-radius: 7px;
+            border: 1px solid var(--border); background: var(--surface2);
+            color: var(--text); font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all var(--t);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .page-btn:hover { background: rgba(255,255,255,.07); color: var(--hi); }
+        .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .page-btn:disabled { opacity: .3; pointer-events: none; }
+
+        /* Loading skeleton */
+        .skeleton-row td { padding: 14px 16px; }
+        .skeleton { height: 14px; border-radius: 4px; background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .empty-state svg { width: 48px; height: 48px; color: rgba(148,163,184,.2); margin-bottom: 12px; }
+        .empty-state p { color: var(--text); font-size: 13px; }
+
+        /* ══ Modal ══════════════════════════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 500;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            opacity: 0; pointer-events: none;
+            transition: opacity var(--t);
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            padding: 28px;
+            box-shadow: 0 32px 80px rgba(0,0,0,.7);
+            transform: translateY(12px) scale(0.98);
+            transition: transform var(--t);
+        }
+        .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .modal-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--hi); }
+        .modal-close {
+            width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--surface2); color: var(--text);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all var(--t);
+        }
+        .modal-close:hover { color: var(--hi); border-color: var(--border2); }
+        .modal-close svg { width: 13px; height: 13px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; letter-spacing: .03em; }
+        .form-input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            color: var(--hi);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            padding: 10px 14px;
+            outline: none;
+            transition: border-color var(--t), box-shadow var(--t);
+        }
+        .form-input:focus { border-color: rgba(79,142,247,.4); box-shadow: 0 0 0 3px rgba(79,142,247,.08); }
+
+        .form-check { display: flex; align-items: center; gap: 8px; }
+        .form-check input[type=checkbox] {
+            width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+        }
+        .form-check label { font-size: 13px; color: var(--hi); cursor: pointer; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+        /* confirm modal */
+        .confirm-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            background: rgba(240,82,106,.12);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .confirm-icon svg { width: 26px; height: 26px; color: var(--danger); }
+        .confirm-text { text-align: center; color: var(--text); font-size: 13.5px; margin-bottom: 6px; }
+        .confirm-text strong { color: var(--hi); }
+
+        /* ══ Toast ══════════════════════════════════════════════════════════ */
+        .toast-container {
+            position: fixed; bottom: 24px; right: 24px;
+            display: flex; flex-direction: column; gap: 8px;
+            z-index: 600;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.6);
+            font-size: 13px;
+            color: var(--hi);
+            min-width: 240px;
+            max-width: 360px;
+            animation: toast-in .25s ease;
+            transition: opacity .25s, transform .25s;
+        }
+        .toast.out { opacity: 0; transform: translateX(20px); }
+        @keyframes toast-in { from{opacity:0;transform:translateX(20px);} to{opacity:1;transform:none;} }
+        .toast-icon { width: 20px; height: 20px; flex-shrink: 0; }
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error   .toast-icon { color: var(--danger);  }
+        .toast.info    .toast-icon { color: var(--accent);  }
+    </style>
+</head>
+<body>
+
+<!-- ── Sidebar nav fragment ─────────────────────────────────────────────── -->
+<div th:replace="~{fragments/nav :: sidebar}"></div>
+
+<!-- ── Page ──────────────────────────────────────────────────────────────── -->
+<div class="bp-page-content" id="pageContent">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <div class="page-title">BOQ Manager</div>
+            <div class="page-sub">Manage Bill of Quantities scraped from the GeM portal</div>
+        </div>
+        <a href="/api/admin/dashboard" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Admin
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card blue">
+            <div class="stat-label">Total BOQs</div>
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-note">In database</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label">Active</div>
+            <div class="stat-value" id="statActive">—</div>
+            <div class="stat-note">Enabled for matching</div>
+        </div>
+        <div class="stat-card warn">
+            <div class="stat-label">Inactive</div>
+            <div class="stat-value" id="statInactive">—</div>
+            <div class="stat-note">Disabled</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-label">Last Scraped</div>
+            <div class="stat-value" id="statLastRun" style="font-size:16px;padding-top:6px">—</div>
+            <div class="stat-note">From GeM portal</div>
+        </div>
+    </div>
+
+    <!-- Scrape Panel -->
+    <div class="scrape-panel">
+        <div class="panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            GeM BOQ Scraper
+        </div>
+
+        <div class="scrape-actions">
+            <button class="btn btn-primary" id="btnScrape" onclick="startScrape()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Start Scraping
+            </button>
+            <button class="btn btn-ghost" id="btnRefreshProgress" onclick="fetchProgress()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh Status
+            </button>
+        </div>
+
+        <div class="progress-wrap">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="scrape-status-row">
+            <span class="status-badge idle" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">Idle</span>
+            </span>
+            <div class="scrape-counters">
+                <div class="counter-chip">Found: <span id="cntFound">0</span></div>
+                <div class="counter-chip">Saved: <span id="cntSaved">0</span></div>
+                <div class="counter-chip">Skipped: <span id="cntSkipped">0</span></div>
+                <div class="counter-chip">Total in dropdown: <span id="cntDropdown">—</span></div>
+            </div>
+        </div>
+        <div class="scrape-log-text" id="scrapeLog">Waiting for scrape to start…</div>
+    </div>
+
+    <!-- Table Panel -->
+    <div class="table-panel">
+        <div class="table-toolbar">
+            <div class="toolbar-left">
+                <div class="panel-title" style="margin:0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--accent)">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    BOQ Entries
+                </div>
+                <div class="search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input class="search-input" type="text" id="searchInput" placeholder="Search by title or GeM ID…" oninput="onSearch()">
+                </div>
+                <select class="filter-select" id="activeFilter" onchange="applyFilter()">
+                    <option value="">All Status</option>
+                    <option value="true">Active Only</option>
+                    <option value="false">Inactive Only</option>
+                </select>
+            </div>
+            <div class="toolbar-right">
+                <button class="btn btn-ghost" onclick="loadBoqs()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    Reload
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:60px">#</th>
+                        <th>Title</th>
+                        <th style="width:160px">GeM BOQ ID</th>
+                        <th style="width:90px">Status</th>
+                        <th style="width:120px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="boqTableBody">
+                    <!-- skeleton rows -->
+                    <tr class="skeleton-row"><td><div class="skeleton" style="width:30px"></div></td><td><div class="skeleton"></div></td><td><div class="skeleton" style="width:100px"></div></td><td><div class="skeleton" style="width:60px"></div></td><td><div class="skeleton" style="width:80px;margin-left:auto"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton" style="width:30px"></div></td><td><div class="skeleton" style="width:80%"></div></td><td><div class="skeleton" style="width:100px"></div></td><td><div class="skeleton" style="width:60px"></div></td><td><div class="skeleton" style="width:80px;margin-left:auto"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton" style="width:30px"></div></td><td><div class="skeleton" style="width:65%"></div></td><td><div class="skeleton" style="width:100px"></div></td><td><div class="skeleton" style="width:60px"></div></td><td><div class="skeleton" style="width:80px;margin-left:auto"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <div class="page-info">Showing <span id="showFrom">0</span>–<span id="showTo">0</span> of <span id="showTotal">0</span> entries</div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Edit Modal ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="editModal" onclick="closeEditOnOverlay(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="editModalTitle">Edit BOQ</div>
+            <button class="modal-close" onclick="closeModal('editModal')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <input type="hidden" id="editId">
+        <div class="form-group">
+            <label class="form-label">BOQ Title</label>
+            <input class="form-input" type="text" id="editTitle" placeholder="e.g. Office Chair - Type A">
+        </div>
+        <div class="form-group">
+            <label class="form-label">GeM BOQ ID</label>
+            <input class="form-input" type="text" id="editGemId" placeholder="e.g. 12345">
+        </div>
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" id="editActive" checked>
+                <label for="editActive">Active (visible to matching engine)</label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Delete Confirm Modal ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal" onclick="closeEditOnOverlay(event, 'deleteModal')">
+    <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+            <div class="modal-title">Confirm Delete</div>
+            <button class="modal-close" onclick="closeModal('deleteModal')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="confirm-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+        </div>
+        <p class="confirm-text">Delete <strong id="deleteTitle"></strong>?</p>
+        <p class="confirm-text" style="font-size:12px;opacity:.7;margin-top:4px">This action cannot be undone.</p>
+        <input type="hidden" id="deleteId">
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger-soft" onclick="confirmDelete()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                </svg>
+                Delete BOQ
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Toast Container ════════════════════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+let allBoqs      = [];
+let filteredBoqs = [];
+let currentPage  = 1;
+const PAGE_SIZE  = 25;
+let pollTimer    = null;
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadBoqs();
+    fetchProgress();
+    loadStats();
+});
+
+// ─── Stats ────────────────────────────────────────────────────────────────
+async function loadStats() {
+    try {
+        const r = await fetch('/api/admin/boq/stats', { credentials: 'include' });
+        if (r.ok) {
+            const d = await r.json();
+            document.getElementById('statTotal').textContent = fmt(d.total ?? 0);
+            document.getElementById('statActive').textContent = fmt(d.active ?? 0);
+            document.getElementById('statInactive').textContent = fmt(d.inactive ?? 0);
+            if (d.lastRun) {
+                document.getElementById('statLastRun').textContent = new Date(d.lastRun).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+            } else {
+                document.getElementById('statLastRun').textContent = 'Never';
+            }
+            return;
+        }
+    } catch (e) {
+        // Fall through to fallback
+    }
+    
+    // Fallback to count endpoint
+    try {
+        const r = await fetch('/api/admin/boq/count', { credentials: 'include' });
+        if (r.ok) {
+            const d = await r.json();
+            document.getElementById('statTotal').textContent = fmt(d.total ?? allBoqs.length);
+            document.getElementById('statActive').textContent = fmt(d.active ?? 0);
+            document.getElementById('statInactive').textContent = fmt((d.total - d.active) ?? 0);
+        }
+    } catch (e) {
+        // Use allBoqs length if available
+        if (allBoqs.length) {
+            const active = allBoqs.filter(b => b.isActive).length;
+            document.getElementById('statTotal').textContent = fmt(allBoqs.length);
+            document.getElementById('statActive').textContent = fmt(active);
+            document.getElementById('statInactive').textContent = fmt(allBoqs.length - active);
+        }
+    }
+}
+
+// ─── BOQ Table ────────────────────────────────────────────────────────────
+async function loadBoqs() {
+    renderSkeleton();
+    try {
+        const r = await fetch('/api/admin/boq/list', { credentials: 'include' });
+        if (!r.ok) throw new Error('Failed to load BOQ list');
+        allBoqs = await r.json();
+        applyFilter();
+        updateStatCounts();
+    } catch (e) {
+        showToast('error', 'Could not load BOQ list: ' + e.message);
+        document.getElementById('boqTableBody').innerHTML = emptyState('Failed to load data. Check API and try again.');
+    }
+}
+
+function updateStatCounts() {
+    const total   = allBoqs.length;
+    const active  = allBoqs.filter(b => b.isActive).length;
+    document.getElementById('statTotal').textContent    = fmt(total);
+    document.getElementById('statActive').textContent   = fmt(active);
+    document.getElementById('statInactive').textContent = fmt(total - active);
+}
+
+function applyFilter() {
+    const q      = document.getElementById('searchInput').value.trim().toLowerCase();
+    const status = document.getElementById('activeFilter').value;
+    filteredBoqs = allBoqs.filter(b => {
+        const matchQ = !q || b.boqTitle?.toLowerCase().includes(q) || b.gemBoqId?.toLowerCase().includes(q);
+        const matchS = status === '' || String(b.isActive) === status;
+        return matchQ && matchS;
+    });
+    currentPage = 1;
+    renderTable();
+}
+
+let searchTimer;
+function onSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilter, 220);
+}
+
+function renderTable() {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filteredBoqs.slice(start, start + PAGE_SIZE);
+
+    document.getElementById('showFrom').textContent  = filteredBoqs.length ? start + 1 : 0;
+    document.getElementById('showTo').textContent    = Math.min(start + PAGE_SIZE, filteredBoqs.length);
+    document.getElementById('showTotal').textContent = fmt(filteredBoqs.length);
+
+    if (!page.length) {
+        document.getElementById('boqTableBody').innerHTML = emptyState('No BOQ entries found. Try a different filter or run the scraper.');
+        renderPagination();
+        return;
+    }
+
+    document.getElementById('boqTableBody').innerHTML = page.map((b, i) => `
+        <tr>
+            <td class="td-id">${start + i + 1}</td>
+            <td class="td-title"><span title="${esc(b.boqTitle)}">${esc(b.boqTitle)}</span></td>
+            <td class="td-gem-id" title="${esc(b.gemBoqId || '')}">${b.gemBoqId ? esc(b.gemBoqId) : '<span style="opacity:.3">—</span>'}</td>
+            <td>
+                <span class="active-badge ${b.isActive ? 'yes' : 'no'}">
+                    ${b.isActive ? '● Active' : '○ Inactive'}
+                </span>
+            </td>
+            <td>
+                <div class="action-btns">
+                    <button class="icon-btn toggle" title="${b.isActive ? 'Deactivate' : 'Activate'}" onclick="toggleActive(${b.id}, ${!b.isActive})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            ${b.isActive
+                                ? '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>'
+                                : '<circle cx="12" cy="12" r="10"/><polyline points="9 11 12 14 22 4"/>'}
+                        </svg>
+                    </button>
+                    <button class="icon-btn edit" title="Edit" onclick="openEdit(${b.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn delete" title="Delete" onclick="openDelete(${b.id}, '${esc(b.boqTitle)}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    renderPagination();
+}
+
+function renderPagination() {
+    const total = Math.ceil(filteredBoqs.length / PAGE_SIZE);
+    const pg    = document.getElementById('pagination');
+    if (total <= 1) { pg.innerHTML = ''; return; }
+
+    let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for (let i = 1; i <= Math.min(total, 7); i++) {
+        html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    if (total > 7) html += `<button class="page-btn" style="pointer-events:none">…</button><button class="page-btn" onclick="goPage(${total})">${total}</button>`;
+    html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+    pg.innerHTML = html;
+}
+
+function goPage(n) {
+    const total = Math.ceil(filteredBoqs.length / PAGE_SIZE);
+    if (n < 1 || n > total) return;
+    currentPage = n;
+    renderTable();
+    document.querySelector('.table-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderSkeleton() {
+    document.getElementById('boqTableBody').innerHTML = Array(5).fill(0).map(() => `
+        <tr class="skeleton-row">
+            <td><div class="skeleton" style="width:30px"></div></td>
+            <td><div class="skeleton" style="width:${60+Math.random()*30}%"></div></td>
+            <td><div class="skeleton" style="width:100px"></div></td>
+            <td><div class="skeleton" style="width:60px"></div></td>
+            <td><div class="skeleton" style="width:80px;margin-left:auto"></div></td>
+        </tr>`).join('');
+}
+
+function emptyState(msg) {
+    return `<tr><td colspan="5"><div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>${msg}</p>
+    </div></td></tr>`;
+}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────
+function openEdit(id) {
+    const b = allBoqs.find(x => x.id === id);
+    if (!b) return;
+    document.getElementById('editId').value    = b.id;
+    document.getElementById('editTitle').value = b.boqTitle;
+    document.getElementById('editGemId').value = b.gemBoqId || '';
+    document.getElementById('editActive').checked = b.isActive;
+    document.getElementById('editModalTitle').textContent = 'Edit BOQ #' + b.id;
+    openModal('editModal');
+}
+
+async function saveEdit() {
+    const id     = document.getElementById('editId').value;
+    const title  = document.getElementById('editTitle').value.trim();
+    const gemId  = document.getElementById('editGemId').value.trim();
+    const active = document.getElementById('editActive').checked;
+
+    if (!title) { showToast('error', 'Title cannot be empty.'); return; }
+
+    try {
+        const r = await fetch(`/api/admin/boq/${id}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boqTitle: title, gemBoqId: gemId || null, isActive: active })
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const updated = await r.json();
+        const idx = allBoqs.findIndex(x => x.id === parseInt(id));
+        if (idx !== -1) allBoqs[idx] = updated;
+        applyFilter();
+        closeModal('editModal');
+        showToast('success', 'BOQ updated successfully.');
+    } catch (e) {
+        showToast('error', 'Update failed: ' + e.message);
+    }
+}
+
+// ─── Delete Modal ─────────────────────────────────────────────────────────
+function openDelete(id, title) {
+    document.getElementById('deleteId').value        = id;
+    document.getElementById('deleteTitle').textContent = title.length > 60 ? title.slice(0,60)+'…' : title;
+    openModal('deleteModal');
+}
+
+async function confirmDelete() {
+    const id = document.getElementById('deleteId').value;
+    try {
+        const r = await fetch(`/api/admin/boq/${id}`, { method: 'DELETE', credentials: 'include' });
+        if (!r.ok) throw new Error(await r.text());
+        allBoqs = allBoqs.filter(x => x.id !== parseInt(id));
+        applyFilter();
+        updateStatCounts();
+        closeModal('deleteModal');
+        showToast('success', 'BOQ deleted.');
+    } catch (e) {
+        showToast('error', 'Delete failed: ' + e.message);
+    }
+}
+
+// ─── Toggle Active ────────────────────────────────────────────────────────
+async function toggleActive(id, newState) {
+    try {
+        const r = await fetch(`/api/admin/boq/${id}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: newState })
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const updated = await r.json();
+        const idx = allBoqs.findIndex(x => x.id === id);
+        if (idx !== -1) allBoqs[idx] = updated;
+        applyFilter();
+        updateStatCounts();
+        showToast('success', `BOQ ${newState ? 'activated' : 'deactivated'}.`);
+    } catch (e) {
+        showToast('error', 'Toggle failed: ' + e.message);
+    }
+}
+
+// ─── Scraper ──────────────────────────────────────────────────────────────
+async function startScrape() {
+    document.getElementById('btnScrape').disabled = true;
+    setProgress(0, true);
+    setStatus('running', 'Starting scraper…');
+    setScrapeLog('Launching Chrome driver and connecting to GeM portal…');
+
+    try {
+        const r = await fetch('/api/admin/boq/scrape', { method: 'POST', credentials: 'include' });
+        if (!r.ok) throw new Error(await r.text());
+        showToast('info', 'Scraper started! Polling for progress…');
+        startPolling();
+    } catch (e) {
+        setStatus('error', 'Failed to start');
+        setScrapeLog('Error: ' + e.message, 'error');
+        document.getElementById('btnScrape').disabled = false;
+        showToast('error', 'Could not start scraper: ' + e.message);
+    }
+}
+
+function startPolling() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(fetchProgress, 2500);
+}
+
+async function fetchProgress() {
+    try {
+        const r = await fetch('/api/admin/boq/scrape/progress', { credentials: 'include' });
+        if (!r.ok) return;
+        const d = await r.json();
+
+        const active  = d.isScrapingActive ?? d.scraping ?? false;
+        const status  = d.currentStatus    ?? d.status   ?? 'Idle';
+        const found   = d.totalFound   ?? 0;
+        const saved   = d.totalSaved   ?? 0;
+        const skipped = d.totalSkipped ?? 0;
+        const total   = d.totalInDropdown ?? 0;
+
+        document.getElementById('cntFound').textContent    = fmt(found);
+        document.getElementById('cntSaved').textContent    = fmt(saved);
+        document.getElementById('cntSkipped').textContent  = fmt(skipped);
+        document.getElementById('cntDropdown').textContent = total ? fmt(total) : '—';
+
+        const pct = total > 0 ? Math.round((found / total) * 100) : 0;
+        setProgress(pct, active && total === 0);
+
+        if (active) {
+            setStatus('running', status);
+            setScrapeLog(status);
+            document.getElementById('btnScrape').disabled = true;
+        } else {
+            clearInterval(pollTimer);
+            document.getElementById('btnScrape').disabled = false;
+            if (saved > 0 || found > 0) {
+                setStatus('done', 'Completed');
+                setScrapeLog(`✓ Done — ${fmt(saved)} new entries saved, ${fmt(skipped)} skipped.`, 'success');
+                setProgress(100, false);
+                loadBoqs();
+            } else {
+                setStatus('idle', 'Idle');
+                setScrapeLog('No active scrape. Press "Start Scraping" to begin.');
+                setProgress(0, false);
+            }
+        }
+    } catch {}
+}
+
+function setProgress(pct, indeterminate = false) {
+    const bar = document.getElementById('progressBar');
+    if (indeterminate) {
+        bar.classList.add('indeterminate');
+        bar.style.width = '';
+    } else {
+        bar.classList.remove('indeterminate');
+        bar.style.width = pct + '%';
+    }
+}
+
+function setStatus(type, text) {
+    const badge = document.getElementById('statusBadge');
+    badge.className = 'status-badge ' + type;
+    document.getElementById('statusText').textContent = text;
+}
+
+function setScrapeLog(msg, type = '') {
+    const el = document.getElementById('scrapeLog');
+    el.className = 'scrape-log-text ' + type;
+    el.textContent = msg;
+}
+
+// ─── Modals ───────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeEditOnOverlay(e, id = 'editModal') { if (e.target === document.getElementById(id)) closeModal(id); }
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+const TOAST_ICONS = {
+    success: `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 11 12 14 22 4"/></svg>`,
+    error:   `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    info:    `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+function showToast(type, msg) {
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = TOAST_ICONS[type] + `<span>${msg}</span>`;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 3800);
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────
+function fmt(n) { return Number(n).toLocaleString('en-IN'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+
+</body>
+</html>

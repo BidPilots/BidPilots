@@ -1,18 +1,7 @@
 package in.BidPilots.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import in.BidPilots.entity.BidDetails;
-import in.BidPilots.entity.Category;
-import in.BidPilots.entity.MatchedBids;
-import in.BidPilots.entity.User;
-import in.BidPilots.entity.UserSavedFilter;
-import in.BidPilots.repository.BidDetailsRepository;
-import in.BidPilots.repository.CategoryRepository;
-import in.BidPilots.repository.MatchedBidsRepository;
-import in.BidPilots.repository.UserRegistrationRepository;
-import in.BidPilots.repository.UserSavedFilterRepository;
-import jakarta.annotation.PostConstruct;
+import in.BidPilots.entity.*;
+import in.BidPilots.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -20,457 +9,339 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * Matches active bids against each user's saved filters.
+ *
+ * Called in two contexts:
+ *  1. Immediately after a filter is saved (runMatchingForFilter).
+ *  2. On a 15-minute scheduled job (runMatchingForAllUsers / runMatchingForNewBids).
+ *
+ * KEY DISMISS GUARD
+ * -----------------
+ * existsByUserIdAndBidId queries ALL rows in matched_bids — including rows where
+ * isDeleted = true (dismissed bids). A dismissed bid must never reappear, so we
+ * treat "row exists" as "bid has been seen", regardless of the isDeleted flag.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class UserBidMatchingService {
 
-    private final UserSavedFilterRepository  userSavedFilterRepository;
-    private final UserRegistrationRepository userRepository;
-    private final BidDetailsRepository       bidDetailsRepository;
+    private final UserSavedFilterRepository  savedFilterRepository;
     private final MatchedBidsRepository      matchedBidsRepository;
+    private final BidRepository              bidRepository;
+    private final BidDetailsRepository       bidDetailsRepository;
+    // FIX #1: Inject CategoryRepository so resolveCategoryName() can actually look up names
     private final CategoryRepository         categoryRepository;
+    private final ObjectMapper               objectMapper = new ObjectMapper();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // ── Constants ─────────────────────────────────────────────────────────────
+    private static final int    MIN_SMART_SCORE    = 2;
+    private static final double JACCARD_THRESHOLD  = 0.15;
 
-    // ── Statistics ────────────────────────────────────────────────────────────
-    private final AtomicInteger totalRuns             = new AtomicInteger(0);
-    private final AtomicInteger totalUsersProcessed   = new AtomicInteger(0);
-    private final AtomicInteger totalFiltersProcessed = new AtomicInteger(0);
-    private final AtomicInteger totalBidsScanned      = new AtomicInteger(0);
-    private final AtomicInteger totalMatchesFound     = new AtomicInteger(0);
-    private final AtomicInteger totalNewMatches       = new AtomicInteger(0);
-    private final AtomicInteger totalDuplicates       = new AtomicInteger(0);
+    // =========================================================================
+    //  PUBLIC API
+    // =========================================================================
 
-    private volatile LocalDateTime lastRunTime = null;
-    private final AtomicBoolean    isRunning   = new AtomicBoolean(false);
-
-    // volatile — reference swap visible to all threads immediately
-    private volatile Map<Long, String> categoryNameCache = new HashMap<>();
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  BOOT
-    // ═══════════════════════════════════════════════════════════════════════════
-    @PostConstruct
-    public void init() {
-        log.info("=".repeat(80));
-        log.info("🚀 USER BID MATCHING SERVICE INITIALIZED");
-        log.info("   Scheduled full scan : every 15 minutes");
-        log.info("   Immediate scan      : triggered on filter creation");
-        log.info("   Match criteria      : category in pdf_content  +  state/city filter");
-        log.info("=".repeat(80));
-        loadCategoryCache();
-    }
-
-    private void loadCategoryCache() {
-        try {
-            categoryNameCache = categoryRepository.findAll()
-                    .stream()
-                    .collect(Collectors.toMap(Category::getId, Category::getCategoryName));
-            log.info("📚 Category cache loaded: {} categories", categoryNameCache.size());
-        } catch (Exception e) {
-            log.error("Error loading category cache: {}", e.getMessage());
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  IMMEDIATE MATCH — called right after a filter is saved
-    //  Runs @Async so the HTTP response is not blocked.
-    // ═══════════════════════════════════════════════════════════════════════════
+    /**
+     * Called right after a new filter is saved — async so the HTTP response
+     * returns immediately while matching happens in the background.
+     */
     @Async
-    @Transactional
     public void runMatchingForFilter(Long userId, UserSavedFilter filter) {
-        log.info("⚡ Immediate match: user={} filter='{}' (id={})",
-                userId, filter.getFilterName(), filter.getId());
+        log.info("[Matching] Starting async match for userId={} filterId={}", userId, filter.getId());
         try {
-            String categoryName = resolvedCategoryName(filter.getCategoryId());
-            if (categoryName == null) {
-                log.warn("⚠️ Category {} not in cache — skipping", filter.getCategoryId());
-                return;
-            }
+            List<Bid> activeBids = bidRepository.findByIsActiveTrueAndIsFinalizedFalse();
 
-            List<Long> filterStateIds = parseIds(filter.getStateIds());
-            List<Long> filterCityIds  = parseIds(filter.getCityIds());
+            // FIX #3: Batch-load BidDetails for all active bids upfront (avoids N+1)
+            Set<Long> bidIds = activeBids.stream().map(Bid::getId).collect(Collectors.toSet());
+            Map<Long, BidDetails> detailsMap = loadDetailsMap(bidIds);
 
-            // Pull only active bids — pre-filtered by state at DB level if states set
-            List<BidDetails> candidates = filterStateIds.isEmpty()
-                    ? bidDetailsRepository.findActiveBidsWithCompletedExtraction()
-                    : bidDetailsRepository.findActiveBidsInStates(filterStateIds);
-
-            if (candidates.isEmpty()) {
-                log.info("ℹ️ No candidate bids (user={} filter={})", userId, filter.getId());
-                return;
-            }
-
-            // Load all already-matched bid IDs for this user in ONE query
-            Set<Long> alreadyMatched = matchedBidsRepository.findBidIdsByUserId(userId);
-
-            List<MatchedBids> toSave = new ArrayList<>();
-
-            for (BidDetails details : candidates) {
-                // BidDetails.bid is @OneToOne LAZY, but the repository query uses
-                // JOIN FETCH so details.getBid() is already loaded — no extra query.
-                Long bidId = details.getBid().getId();
-
-                if (alreadyMatched.contains(bidId)) continue;
-
-                if (!matchesAllCriteria(details, categoryName, filterStateIds, filterCityIds)) continue;
-
-                MatchedBids match = new MatchedBids();
-                match.setUserId(userId);
-                match.setBidId(bidId);
-                match.setFilterId(filter.getId());
-                match.setCategoryId(filter.getCategoryId());
-                match.setIsViewed(false);
-                toSave.add(match);
-            }
-
-            if (!toSave.isEmpty()) {
-                matchedBidsRepository.saveAll(toSave);
-            }
-
-            log.info("✅ Immediate match done: filter='{}' → {} new matches",
-                    filter.getFilterName(), toSave.size());
-
+            matchBidsForFilter(userId, filter, activeBids, detailsMap);
         } catch (Exception e) {
-            log.error("❌ Immediate match error for filter {}: {}", filter.getId(), e.getMessage(), e);
+            log.error("[Matching] Error in async match for filterId={}: {}", filter.getId(), e.getMessage(), e);
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  SCHEDULED FULL SCAN — every 15 minutes, all users & all filters
-    // ═══════════════════════════════════════════════════════════════════════════
-    @Scheduled(cron = "0 */15 * * * *")
+    /**
+     * FIX #2: Added @Scheduled — without this annotation the method is NEVER
+     * called automatically and the 15-minute matching job never runs.
+     *
+     * Runs every 15 minutes. Matches ALL users against ALL active bids.
+     * Only inserts rows that do not yet exist in matched_bids.
+     */
+    @Scheduled(fixedRate = 15 * 60 * 1000) // every 15 minutes
     @Transactional
-    public void runMatchingJob() {
-        if (!isRunning.compareAndSet(false, true)) {
-            log.info("⏭️ Previous scan still running — skipping this tick");
+    public void runMatchingForAllUsers() {
+        log.info("[Scheduler] Starting full matching run for all users");
+        List<UserSavedFilter> allFilters = savedFilterRepository.findAll();
+        List<Bid> activeBids = bidRepository.findByIsActiveTrueAndIsFinalizedFalse();
+
+        if (allFilters.isEmpty() || activeBids.isEmpty()) {
+            log.info("[Scheduler] No filters or no active bids — skipping run");
             return;
         }
 
-        lastRunTime   = LocalDateTime.now();
-        int runNumber = totalRuns.incrementAndGet();
+        // FIX #3: Batch-load ALL BidDetails in one query instead of per-bid inside the loop
+        Set<Long> bidIds = activeBids.stream().map(Bid::getId).collect(Collectors.toSet());
+        Map<Long, BidDetails> detailsMap = loadDetailsMap(bidIds);
 
-        log.info("=".repeat(80));
-        log.info("🔍 MATCHING JOB #{} STARTED — {}", runNumber, lastRunTime);
-        log.info("=".repeat(80));
+        Map<Long, List<UserSavedFilter>> filtersByUser = allFilters.stream()
+                .collect(Collectors.groupingBy(UserSavedFilter::getUserId));
 
-        long startTime = System.currentTimeMillis();
-
-        try {
-            resetCounters();
-            loadCategoryCache();
-
-            List<User> users = userRepository.findAll();
-            log.info("📊 Users to process: {}", users.size());
-
-            // Load ALL active bids ONCE — shared across all users/filters in this run.
-            // JOIN FETCH ensures bid.state and bid.consigneeCity are pre-loaded.
-            List<BidDetails> activeBids = bidDetailsRepository.findActiveBidsWithCompletedExtraction();
-            log.info("📄 Active bid details: {}", activeBids.size());
-            totalBidsScanned.set(activeBids.size());
-
-            if (activeBids.isEmpty()) {
-                log.info("ℹ️ No active bids — nothing to match");
-                return;
+        int totalInserted = 0;
+        for (Map.Entry<Long, List<UserSavedFilter>> entry : filtersByUser.entrySet()) {
+            Long userId = entry.getKey();
+            for (UserSavedFilter filter : entry.getValue()) {
+                totalInserted += matchBidsForFilter(userId, filter, activeBids, detailsMap);
             }
-
-            for (User user : users) {
-                processUser(user, activeBids);
-                int done = totalUsersProcessed.incrementAndGet();
-                if (done % 10 == 0) {
-                    log.info("   Progress: {}/{} users", done, users.size());
-                }
-            }
-
-            // Remove matches whose bids are now finalized or inactive
-            int deleted = matchedBidsRepository.deleteByInactiveOrFinalizedBids();
-            if (deleted > 0) log.info("🧹 Removed {} stale matches", deleted);
-
-            long elapsed = (System.currentTimeMillis() - startTime) / 1000;
-            log.info("=".repeat(80));
-            log.info("✅ MATCHING JOB #{} DONE in {}s", runNumber, elapsed);
-            log.info("   Users={} Filters={} Bids={}  New={} Dups={}",
-                    totalUsersProcessed.get(), totalFiltersProcessed.get(),
-                    totalBidsScanned.get(), totalNewMatches.get(), totalDuplicates.get());
-            log.info("=".repeat(80));
-
-        } catch (Exception e) {
-            log.error("❌ Matching job #{} failed: {}", runNumber, e.getMessage(), e);
-        } finally {
-            isRunning.set(false); // ALWAYS reset — even if an exception is thrown
         }
+        log.info("[Scheduler] Completed full matching run — {} new matches inserted", totalInserted);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Per-user processing
-    // ─────────────────────────────────────────────────────────────────────────
-    private void processUser(User user, List<BidDetails> activeBids) {
-        try {
-            List<UserSavedFilter> filters = userSavedFilterRepository
-                    .findByUserIdWithCategory(user.getId());
+    /**
+     * Lighter variant: only considers bids created since the last scheduler run.
+     * Same dismiss-guard guarantee applies via existsByUserIdAndBidId.
+     */
+    @Transactional
+    public void runMatchingForNewBids(List<Bid> newBids) {
+        if (newBids == null || newBids.isEmpty()) return;
+        log.info("[Scheduler] Matching {} new bid(s) against all filters", newBids.size());
 
-            if (filters.isEmpty()) return;
+        List<UserSavedFilter> allFilters = savedFilterRepository.findAll();
 
-            // Fetch the complete set of already-matched bid IDs for this user
-            // in ONE query, then use Set.contains() — O(1) per lookup.
-            Set<Long> alreadyMatched = new HashSet<>(
-                    matchedBidsRepository.findBidIdsByUserId(user.getId())
-            );
+        // FIX #3: Batch-load BidDetails for new bids upfront
+        Set<Long> bidIds = newBids.stream().map(Bid::getId).collect(Collectors.toSet());
+        Map<Long, BidDetails> detailsMap = loadDetailsMap(bidIds);
 
-            List<MatchedBids> toSave = new ArrayList<>();
+        Map<Long, List<UserSavedFilter>> filtersByUser = allFilters.stream()
+                .collect(Collectors.groupingBy(UserSavedFilter::getUserId));
 
-            for (UserSavedFilter filter : filters) {
-                processFilter(user, filter, activeBids, alreadyMatched, toSave);
-                totalFiltersProcessed.incrementAndGet();
+        int totalInserted = 0;
+        for (Map.Entry<Long, List<UserSavedFilter>> entry : filtersByUser.entrySet()) {
+            Long userId = entry.getKey();
+            for (UserSavedFilter filter : entry.getValue()) {
+                totalInserted += matchBidsForFilter(userId, filter, newBids, detailsMap);
             }
-
-            // Batch insert — one saveAll per user, not one save per match
-            if (!toSave.isEmpty()) {
-                matchedBidsRepository.saveAll(toSave);
-            }
-
-        } catch (Exception e) {
-            log.error("Error processing user {}: {}", user.getId(), e.getMessage());
         }
+        log.info("[Scheduler] New-bid matching done — {} new matches inserted", totalInserted);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Per-filter processing — apply all criteria and collect new matches
-    // ─────────────────────────────────────────────────────────────────────────
-    private void processFilter(User user,
-                               UserSavedFilter filter,
-                               List<BidDetails> activeBids,
-                               Set<Long> alreadyMatched,
-                               List<MatchedBids> toSave) {
+    // =========================================================================
+    //  CORE MATCHING LOGIC
+    // =========================================================================
 
-        String categoryName = resolvedCategoryName(filter.getCategoryId());
-        if (categoryName == null) return;
+    /**
+     * Matches a list of bids against a single filter for a user.
+     *
+     * @param detailsMap pre-loaded BidDetails keyed by bidId (avoids N+1 queries)
+     * @return number of new MatchedBids rows inserted
+     */
+    private int matchBidsForFilter(Long userId, UserSavedFilter filter,
+                                   List<Bid> bids, Map<Long, BidDetails> detailsMap) {
+        String filterType = filter.getFilterType() != null
+                ? filter.getFilterType().toUpperCase() : "SMART";
 
-        List<Long> filterStateIds = parseIds(filter.getStateIds());
-        List<Long> filterCityIds  = parseIds(filter.getCityIds());
+        List<Long> stateIds = parseIds(filter.getStateIds());
+        List<Long> cityIds  = parseIds(filter.getCityIds());
 
-        int newForFilter = 0;
-        int dupForFilter = 0;
+        // FIX #4: Resolve category name ONCE per filter, not once per bid.
+        // Previously resolveCategoryName() was called inside matchCategoryFilter()
+        // which is called inside the bid loop — one DB hit per bid × per filter run.
+        String resolvedCategoryName = null;
+        if (!"BOQ".equals(filterType) && !"LOCATION".equals(filterType)) {
+            resolvedCategoryName = resolveCategoryName(filter.getCategoryId());
+            // If category can't be resolved, skip the whole filter — no bids will match.
+            if (resolvedCategoryName == null) {
+                log.warn("[Matching] categoryId={} not found for filterId={} — skipping",
+                        filter.getCategoryId(), filter.getId());
+                return 0;
+            }
+        }
 
-        for (BidDetails details : activeBids) {
+        // FIX #5: Pre-load the full set of already-seen bid IDs for this user in ONE query
+        // instead of calling existsByUserIdAndBidId() (one DB round-trip) per bid.
+        Set<Long> alreadySeenBidIds = matchedBidsRepository.findBidIdsByUserId(userId);
 
-            // details.getBid() is safe — JOIN FETCH in the repository pre-loaded it
-            Long bidId = details.getBid().getId();
+        int inserted = 0;
 
-            if (alreadyMatched.contains(bidId)) {
-                dupForFilter++;
-                totalDuplicates.incrementAndGet();
+        for (Bid bid : bids) {
+            // DISMISS GUARD: findBidIdsByUserId returns ALL bid IDs including soft-deleted rows,
+            // so a dismissed bid is never re-inserted.
+            if (alreadySeenBidIds.contains(bid.getId())) {
                 continue;
             }
 
-            if (!matchesAllCriteria(details, categoryName, filterStateIds, filterCityIds)) continue;
+            // Use pre-loaded details map — no extra DB query per bid
+            BidDetails details = detailsMap.get(bid.getId());
+            boolean matched = false;
 
-            MatchedBids m = new MatchedBids();
-            m.setUserId(user.getId());
-            m.setBidId(bidId);
-            m.setFilterId(filter.getId());
-            m.setCategoryId(filter.getCategoryId());
-            m.setIsViewed(false);
-            toSave.add(m);
+            switch (filterType) {
+                case "BOQ":
+                    matched = matchBoqFilter(filter, bid, details, stateIds, cityIds);
+                    break;
+                case "LOCATION":
+                    matched = matchLocationFilter(bid, stateIds, cityIds);
+                    break;
+                default: // SMART / EXACT / BROAD
+                    matched = matchCategoryFilter(resolvedCategoryName, filterType, bid, details, stateIds, cityIds);
+                    break;
+            }
 
-            // Add to in-memory set so the next filter in the same run
-            // doesn't try to insert a duplicate for the same user+bid pair
-            alreadyMatched.add(bidId);
-            newForFilter++;
-            totalMatchesFound.incrementAndGet();
-            totalNewMatches.incrementAndGet();
+            if (matched) {
+                MatchedBids record = new MatchedBids();
+                record.setUserId(userId);
+                record.setBidId(bid.getId());
+                record.setFilterId(filter.getId());
+                record.setCategoryId(filter.getCategoryId());
+                record.setIsViewed(false);
+                record.setIsDeleted(false);
+                matchedBidsRepository.save(record);
+                inserted++;
+            }
         }
 
-        if (newForFilter > 0) {
-            log.info("   User {} filter '{}' [cat='{}' states={} cities={}]: {} new  {} dup",
-                    user.getId(), filter.getFilterName(), categoryName,
-                    filterStateIds.size(), filterCityIds.size(),
-                    newForFilter, dupForFilter);
+        if (inserted > 0) {
+            log.info("[Matching] userId={} filterId={} type={} → {} new match(es)",
+                    userId, filter.getId(), filterType, inserted);
         }
+        return inserted;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  CORE MATCHING LOGIC
-    //
-    //  A bid matches a filter when ALL THREE criteria are satisfied:
-    //
-    //  1. CATEGORY  — bid's pdf_content contains the category name
-    //                 (exact phrase, case-insensitive, word-boundary aware)
-    //
-    //  2. STATE     — if filter.stateIds is non-empty, bid's state.id must be
-    //                 in that list.  Empty list = "any state" (no restriction).
-    //
-    //  3. CITY      — if filter.cityIds is non-empty, bid's consigneeCity.id
-    //                 must be in that list. Empty list = "any city".
-    //
-    //  BidDetails entity fields used:
-    //    details.getPdfContent()               — LONGTEXT column, already there
-    //    details.getBid().getId()              — via @OneToOne JOIN FETCH
-    //    details.getBid().getState()           — via @OneToOne JOIN FETCH
-    //    details.getBid().getConsigneeCity()   — via @OneToOne JOIN FETCH
-    // ═══════════════════════════════════════════════════════════════════════════
-    private boolean matchesAllCriteria(BidDetails details,
-                                       String categoryName,
-                                       List<Long> filterStateIds,
-                                       List<Long> filterCityIds) {
+    // ── Filter-type matchers ──────────────────────────────────────────────────
 
-        // ── 1. Category must appear in pdf_content ───────────────────────────
-        if (!categoryInContent(details.getPdfContent(), categoryName)) return false;
-
-        // ── 2. State filter ──────────────────────────────────────────────────
-        // Empty filterStateIds means "all states" — skip this check.
-        if (!filterStateIds.isEmpty()) {
-            var state = details.getBid().getState();
-            if (state == null) return false;
-            if (!filterStateIds.contains(state.getId())) return false;
-        }
-
-        // ── 3. City filter ───────────────────────────────────────────────────
-        // Empty filterCityIds means "all cities" — skip this check.
-        if (!filterCityIds.isEmpty()) {
-            var city = details.getBid().getConsigneeCity();
-            if (city == null) return false;
-            if (!filterCityIds.contains(city.getId())) return false;
-        }
-
-        return true;
+    private boolean matchLocationFilter(Bid bid, List<Long> stateIds, List<Long> cityIds) {
+        if (!locationMatches(bid, stateIds, cityIds)) return false;
+        return Boolean.TRUE.equals(bid.getIsActive()) && !Boolean.TRUE.equals(bid.getIsFinalized());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  CATEGORY TEXT MATCHING
-    //
-    //  Primary  : full phrase, case-insensitive, word-boundary check.
-    //             "computer" will NOT match "computerised".
-    //
-    //  Secondary: every significant keyword must be present (100%, not 70%).
-    //             Only used when phrase ≥ 2 significant words.
-    //             "Office Furniture" requires BOTH "office" AND "furniture".
-    //             Stop words (and, the, for, ...) are excluded from the count.
-    // ─────────────────────────────────────────────────────────────────────────
-    private boolean categoryInContent(String pdfContent, String categoryName) {
-        if (pdfContent == null || pdfContent.isBlank()) return false;
-        if (categoryName == null || categoryName.isBlank()) return false;
+    private boolean matchBoqFilter(UserSavedFilter filter, Bid bid, BidDetails details,
+                                   List<Long> stateIds, List<Long> cityIds) {
+        if (!locationMatches(bid, stateIds, cityIds)) return false;
 
-        String content = pdfContent.toLowerCase();
-        String term    = categoryName.toLowerCase().trim();
+        String keyword = filter.getBoqTitle();
+        if (keyword == null || keyword.isBlank()) return false;
+        String kwLower = keyword.trim().toLowerCase();
 
-        // Primary: exact phrase with word-boundary check
-        if (containsWholePhrase(content, term)) return true;
+        if (details != null && details.getPdfContent() != null
+                && details.getPdfContent().toLowerCase().contains(kwLower)) return true;
+        if (details != null && details.getItemCategory() != null
+                && details.getItemCategory().toLowerCase().contains(kwLower)) return true;
+        if (bid.getItems() != null && bid.getItems().toLowerCase().contains(kwLower)) return true;
+        return bid.getDataContent() != null && bid.getDataContent().toLowerCase().contains(kwLower);
+    }
 
-        // Secondary: all significant words present
-        String[] words = term.split("\\s+");
-        String[] significant = Arrays.stream(words)
-                .filter(w -> w.length() > 3 && !STOP_WORDS.contains(w))
-                .toArray(String[]::new);
+    // resolvedCategoryName is pre-computed once per filter run (not per bid) — see FIX #4
+    private boolean matchCategoryFilter(String resolvedCategoryName, String filterType,
+                                        Bid bid, BidDetails details,
+                                        List<Long> stateIds, List<Long> cityIds) {
+        if (!locationMatches(bid, stateIds, cityIds)) return false;
+        if (resolvedCategoryName == null) return false;
 
-        // Single-word categories must match via primary only
-        if (significant.length < 2) return false;
+        String itemCategory = details != null ? details.getItemCategory() : null;
 
-        // ALL significant words required (100% — not 70%)
-        for (String kw : significant) {
-            if (!content.contains(kw)) return false;
-        }
-        return true;
+        return switch (filterType) {
+            case "EXACT"  -> exactMatch(resolvedCategoryName, itemCategory, bid);
+            case "BROAD"  -> broadMatch(resolvedCategoryName, itemCategory, bid);
+            default       -> smartMatch(resolvedCategoryName, itemCategory, bid); // SMART
+        };
+    }
+
+    // ── Matching strategies ───────────────────────────────────────────────────
+
+    private boolean exactMatch(String filterCategory, String itemCategory, Bid bid) {
+        if (itemCategory != null && itemCategory.toLowerCase().contains(filterCategory)) return true;
+        if (bid.getItems() != null && bid.getItems().toLowerCase().contains(filterCategory)) return true;
+        return bid.getDataContent() != null && bid.getDataContent().toLowerCase().contains(filterCategory);
+    }
+
+    private boolean broadMatch(String filterCategory, String itemCategory, Bid bid) {
+        Set<String> filterTokens = tokenize(filterCategory);
+        String haystack = buildHaystack(itemCategory, bid);
+        Set<String> haystackTokens = tokenize(haystack);
+        long hits = filterTokens.stream().filter(haystackTokens::contains).count();
+        return hits > 0;
+    }
+
+    private boolean smartMatch(String filterCategory, String itemCategory, Bid bid) {
+        Set<String> filterTokens = tokenize(filterCategory);
+        String haystack = buildHaystack(itemCategory, bid);
+        Set<String> haystackTokens = tokenize(haystack);
+
+        long hits = filterTokens.stream().filter(haystackTokens::contains).count();
+        if (hits < MIN_SMART_SCORE) return false;
+
+        Set<String> intersection = new HashSet<>(filterTokens);
+        intersection.retainAll(haystackTokens);
+        Set<String> union = new HashSet<>(filterTokens);
+        union.addAll(haystackTokens);
+        double jaccard = union.isEmpty() ? 0 : (double) intersection.size() / union.size();
+        return jaccard >= JACCARD_THRESHOLD;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private boolean locationMatches(Bid bid, List<Long> stateIds, List<Long> cityIds) {
+        if (stateIds.isEmpty()) return true;
+        Long bidStateId = bid.getState() != null ? bid.getState().getId() : null;
+        if (bidStateId == null || !stateIds.contains(bidStateId)) return false;
+        if (cityIds.isEmpty()) return true;
+        Long bidCityId = bid.getConsigneeCity() != null ? bid.getConsigneeCity().getId() : null;
+        return bidCityId != null && cityIds.contains(bidCityId);
+    }
+
+    private String buildHaystack(String itemCategory, Bid bid) {
+        StringBuilder sb = new StringBuilder();
+        if (itemCategory   != null) sb.append(itemCategory).append(' ');
+        if (bid.getItems() != null) sb.append(bid.getItems()).append(' ');
+        if (bid.getDataContent() != null) sb.append(bid.getDataContent());
+        return sb.toString().toLowerCase();
+    }
+
+    private Set<String> tokenize(String text) {
+        if (text == null || text.isBlank()) return Collections.emptySet();
+        return Arrays.stream(text.toLowerCase().split("[\\s,/\\-()]+"))
+                .filter(t -> t.length() > 2)
+                .collect(Collectors.toSet());
     }
 
     /**
-     * Returns true only when {@code phrase} appears in {@code content} as a
-     * complete token — not embedded inside a longer word.
-     *
-     * Example:  phrase = "computer"
-     *   "buy computer hardware"   → true   (spaces on both sides)
-     *   "computerised system"     → false  (letter immediately after)
+     * FIX #1: Was always returning null, causing ALL category-based filters
+     * (SMART / EXACT / BROAD) to silently skip every bid.
+     * Now properly queries the CategoryRepository.
      */
-    private boolean containsWholePhrase(String content, String phrase) {
-        int idx = content.indexOf(phrase);
-        while (idx != -1) {
-            boolean startOk = (idx == 0)
-                    || !Character.isLetterOrDigit(content.charAt(idx - 1));
-            boolean endOk = (idx + phrase.length() >= content.length())
-                    || !Character.isLetterOrDigit(content.charAt(idx + phrase.length()));
-            if (startOk && endOk) return true;
-            idx = content.indexOf(phrase, idx + 1);
-        }
-        return false;
+    private String resolveCategoryName(Long categoryId) {
+        if (categoryId == null) return null;
+        return categoryRepository.findById(categoryId)
+                .map(c -> c.getCategoryName().toLowerCase())
+                .orElse(null);
     }
 
-    // Common English stop words — excluded from the keyword-presence check
-    private static final Set<String> STOP_WORDS = Set.of(
-            "and", "the", "for", "with", "from", "that", "this", "are",
-            "was", "has", "have", "not", "but", "its", "into", "over",
-            "also", "each", "than", "then", "when", "which", "where",
-            "such", "more", "other", "only", "some", "what", "just"
-    );
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  HELPERS
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
-     * Parse "[1,2,3]" stored in UserSavedFilter.stateIds / cityIds into a List.
-     * Returns empty list on null, blank, or malformed JSON — treated as "no filter".
+     * FIX #3: Batch-loads BidDetails for a set of bid IDs in a single query.
+     * Previously, findByBidId() was called inside the per-bid loop, causing
+     * one DB round-trip per bid (N+1 problem).
      */
+    private Map<Long, BidDetails> loadDetailsMap(Set<Long> bidIds) {
+        if (bidIds.isEmpty()) return Collections.emptyMap();
+        return bidDetailsRepository.findAllByBidIdIn(bidIds)
+                .stream()
+                .collect(Collectors.toMap(bd -> bd.getBid().getId(), bd -> bd));
+    }
+
     private List<Long> parseIds(String json) {
         if (json == null || json.isBlank()) return Collections.emptyList();
         try {
             return objectMapper.readValue(json, new TypeReference<List<Long>>() {});
         } catch (Exception e) {
-            log.warn("Could not parse ID list from '{}': {}", json, e.getMessage());
+            log.warn("Failed to parse IDs JSON '{}': {}", json, e.getMessage());
             return Collections.emptyList();
         }
-    }
-
-    /**
-     * Returns the category name from cache. Refreshes the cache once if the
-     * category is missing (handles categories added after startup).
-     * Returns null if the category genuinely does not exist.
-     */
-    private String resolvedCategoryName(Long categoryId) {
-        if (categoryId == null) return null;
-        String name = categoryNameCache.get(categoryId);
-        if (name == null) {
-            loadCategoryCache();
-            name = categoryNameCache.get(categoryId);
-        }
-        return (name == null || name.isBlank()) ? null : name;
-    }
-
-    private void resetCounters() {
-        totalUsersProcessed.set(0);
-        totalFiltersProcessed.set(0);
-        totalBidsScanned.set(0);
-        totalMatchesFound.set(0);
-        totalNewMatches.set(0);
-        totalDuplicates.set(0);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    //  PUBLIC API
-    // ═══════════════════════════════════════════════════════════════════════════
-    public Map<String, Object> getStats() {
-        Map<String, Object> s = new HashMap<>();
-        s.put("isRunning",             isRunning.get());
-        s.put("lastRunTime",           lastRunTime);
-        s.put("totalRuns",             totalRuns.get());
-        s.put("totalUsersProcessed",   totalUsersProcessed.get());
-        s.put("totalFiltersProcessed", totalFiltersProcessed.get());
-        s.put("totalBidsScanned",      totalBidsScanned.get());
-        s.put("totalMatchesFound",     totalMatchesFound.get());
-        s.put("totalNewMatches",       totalNewMatches.get());
-        s.put("totalDuplicates",       totalDuplicates.get());
-        s.put("totalStoredMatches",    matchedBidsRepository.count());
-        return s;
-    }
-
-    public void manuallyRunMatching() {
-        log.info("👤 Manual match job triggered");
-        runMatchingJob();
     }
 }

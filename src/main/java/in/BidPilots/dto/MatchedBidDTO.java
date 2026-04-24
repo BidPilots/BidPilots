@@ -18,7 +18,9 @@ public class MatchedBidDTO {
     private Long filterId;
     private Long categoryId;
     private Boolean isViewed;
+    private Boolean isDeleted;      // NEW: true when the user has dismissed this bid
     private LocalDateTime matchedAt;
+    private LocalDateTime deletedAt; // NEW: timestamp of dismissal, null if not dismissed
 
     // Bid details
     private String bidNumber;
@@ -36,7 +38,10 @@ public class MatchedBidDTO {
     private Boolean isFinalized;
     private String bidDocumentUrl;
 
-    public static MatchedBidDTO fromEntity(MatchedBids match, Bid bid) {
+    // Pre-bid date time from BidDetails
+    private LocalDateTime preBidDateTime;
+
+    public static MatchedBidDTO fromEntity(MatchedBids match, Bid bid, LocalDateTime preBidDateTime) {
         MatchedBidDTO dto = new MatchedBidDTO();
         dto.setId(match.getId());
         dto.setUserId(match.getUserId());
@@ -44,7 +49,10 @@ public class MatchedBidDTO {
         dto.setFilterId(match.getFilterId());
         dto.setCategoryId(match.getCategoryId());
         dto.setIsViewed(match.getIsViewed());
+        dto.setIsDeleted(match.getIsDeleted());       // NEW
+        dto.setDeletedAt(match.getDeletedAt());       // NEW
         dto.setMatchedAt(match.getMatchedAt());
+        dto.setPreBidDateTime(preBidDateTime);
 
         if (bid != null) {
             dto.setBidNumber(bid.getBidNumber());
@@ -64,5 +72,10 @@ public class MatchedBidDTO {
         }
 
         return dto;
+    }
+
+    // Overloaded method for backward compatibility
+    public static MatchedBidDTO fromEntity(MatchedBids match, Bid bid) {
+        return fromEntity(match, bid, null);
     }
 }

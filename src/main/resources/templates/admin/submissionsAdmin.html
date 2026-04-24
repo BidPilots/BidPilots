@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Submissions Admin — BidPilots</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+    <div th:replace="admin/adminNav :: adminNavStyles"></div>
+
+    <style>
+        .page-wrap { padding-top: var(--nav-h); min-height: 100vh; }
+        .bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .bg-canvas::before {
+            content: ''; position: absolute; width: 700px; height: 700px;
+            top: -180px; right: -160px;
+            background: radial-gradient(circle, rgba(79,142,247,.1) 0%, transparent 70%);
+        }
+        .bg-grid {
+            position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(79,142,247,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(79,142,247,.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .content { position: relative; z-index: 1; }
+        .main { max-width: 1360px; margin: 0 auto; padding: 36px 28px 60px; }
+
+        /* Header */
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+        }
+        .page-header h1 { font-size: 26px; font-weight: 800; color: var(--text); }
+        .breadcrumb { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+        .breadcrumb a { color: var(--indigo); text-decoration: none; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+            font-family: var(--font); cursor: pointer; border: none;
+            transition: opacity .2s, transform .15s;
+        }
+        .btn:hover { opacity: .88; transform: translateY(-1px); }
+        .btn-primary { background: var(--grad); color: #fff; }
+        .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border2); }
+        .btn-danger { background: rgba(240,82,106,0.15); color: var(--danger); border: 1px solid rgba(240,82,106,0.3); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .btn-icon { padding: 7px; border-radius: 8px; }
+
+        /* Stats row */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; margin-bottom: 26px; }
+        .mini-stat {
+            background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px;
+            padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+        }
+        .mini-stat-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .mini-stat-icon.blue { background: rgba(79,142,247,.15); color: var(--indigo); }
+        .mini-stat-icon.green { background: rgba(34,201,137,.15); color: var(--success); }
+        .mini-stat-icon.orange { background: rgba(245,166,35,.15); color: var(--warning); }
+        .mini-stat-icon.purple { background: rgba(139,92,246,.15); color: var(--purple); }
+        .mini-stat-val { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+        .mini-stat-label { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+        /* Filter bar */
+        .filter-bar {
+            background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
+            padding: 18px 22px; margin-bottom: 22px;
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        }
+        .filter-bar label { font-size: 12.5px; font-weight: 600; color: var(--sub); margin-bottom: 4px; display: block; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-input, .filter-select {
+            background: var(--bg3); border: 1px solid var(--border2); border-radius: 9px;
+            padding: 8px 14px; color: var(--text); font-family: var(--font);
+            font-size: 13.5px; outline: none; min-width: 160px;
+            transition: border-color .2s;
+        }
+        .filter-input:focus, .filter-select:focus { border-color: var(--indigo); }
+        .filter-select option { background: var(--bg2); }
+        .filter-actions { display: flex; gap: 8px; margin-top: auto; }
+
+        /* Main card */
+        .section-card {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: var(--radius); overflow: hidden;
+        }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap; gap: 12px;
+        }
+        .card-title {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15.5px; font-weight: 700; color: var(--text);
+        }
+
+        /* Table */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        thead tr { border-bottom: 1px solid var(--border2); }
+        th {
+            text-align: left; padding: 11px 16px;
+            font-size: 11px; font-weight: 700; letter-spacing: .06em;
+            color: var(--muted); text-transform: uppercase; white-space: nowrap;
+        }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--sub); vertical-align: middle; }
+        tbody tr { transition: background .15s; }
+        tbody tr:hover { background: rgba(255,255,255,.025); }
+        tbody tr:last-child td { border-bottom: none; }
+        td.val { color: var(--text); font-weight: 600; }
+        td.mono { font-family: monospace; color: var(--indigo); font-size: 12.5px; }
+
+        /* Status badge */
+        .sub-status {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 5px; font-size: 11.5px; font-weight: 700; white-space: nowrap;
+        }
+        .sub-status.draft { background: rgba(245,166,35,.15); color: var(--warning); border: 1px solid rgba(245,166,35,.3); }
+        .sub-status.submitted { background: rgba(34,201,137,.15); color: var(--success); border: 1px solid rgba(34,201,137,.3); }
+        .sub-status.withdrawn { background: rgba(240,82,106,.1); color: var(--danger); border: 1px solid rgba(240,82,106,.2); }
+
+        /* Empty / loading state */
+        .empty-state { text-align: center; padding: 56px 24px; color: var(--muted); }
+        .empty-state svg { margin-bottom: 16px; opacity: .3; }
+        .empty-state p { font-size: 14px; margin-bottom: 4px; }
+        .empty-state small { font-size: 12px; }
+
+        /* Pagination */
+        .pagination {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            flex-wrap: wrap; gap: 12px;
+        }
+        .pagination-info { font-size: 13px; color: var(--sub); }
+        .pagination-btns { display: flex; gap: 6px; }
+        .pg-btn {
+            width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border2);
+            background: var(--bg3); color: var(--sub); font-size: 13px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-family: var(--font); transition: .2s;
+        }
+        .pg-btn:hover, .pg-btn.active { background: rgba(79,142,247,.15); color: var(--indigo); border-color: rgba(79,142,247,.3); }
+        .pg-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+        /* Detail drawer */
+        .drawer-overlay {
+            display: none; position: fixed; inset: 0; z-index: 7000;
+            background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+        }
+        .drawer-overlay.open { display: flex; justify-content: flex-end; }
+        .drawer {
+            width: 420px; max-width: 95vw; background: var(--bg2);
+            border-left: 1px solid var(--border2); height: 100%; overflow-y: auto;
+            animation: slideIn .28s ease;
+        }
+        @keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+        .drawer-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 24px; border-bottom: 1px solid var(--border2); position: sticky; top: 0;
+            background: var(--bg2);
+        }
+        .drawer-header h3 { font-size: 17px; font-weight: 800; }
+        .drawer-close { background: none; border: none; cursor: pointer; color: var(--sub); padding: 4px; border-radius: 8px; }
+        .drawer-close:hover { background: var(--bg3); }
+        .drawer-body { padding: 24px; }
+        .detail-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 11px 0; border-bottom: 1px solid var(--border); gap: 12px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+        .detail-val { font-size: 14px; color: var(--text); font-weight: 600; text-align: right; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+            padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 600;
+            display: none; animation: slideUp .3s ease; max-width: 340px;
+        }
+        #toast.success { background: rgba(34,201,137,.2); border: 1px solid rgba(34,201,137,.5); color: var(--success); }
+        #toast.error   { background: rgba(240,82,106,.2); border: 1px solid rgba(240,82,106,.5); color: var(--danger); }
+        #toast.info    { background: rgba(79,142,247,.2); border: 1px solid rgba(79,142,247,.5); color: var(--indigo); }
+        @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+        /* Confirm modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 8000;
+            background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: 18px; padding: 32px; max-width: 400px; width: 90%;
+            animation: modalIn .25s ease;
+        }
+        @keyframes modalIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:none} }
+        .modal h3 { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+        .modal p { font-size: 14px; color: var(--sub); margin-bottom: 24px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* Notes cell truncate */
+        .notes-cell { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Loader row */
+        .loader-row td { border: none; }
+        .skeleton {
+            height: 14px; background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+            background-size: 200% 100%; border-radius: 4px;
+            animation: skel 1.4s ease-in-out infinite;
+        }
+        @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    </style>
+</head>
+<body>
+<div class="bg-canvas"><div class="bg-grid"></div></div>
+<div th:replace="admin/adminNav :: adminNav"></div>
+
+<div class="page-wrap content">
+<main class="main">
+
+    <div class="breadcrumb"><a th:href="@{/api/admin/dashboard}">Dashboard</a> › Submissions</div>
+    <div class="page-header">
+        <h1>📄 Bid Submissions</h1>
+        <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary" onclick="loadSubmissions()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+        <div class="mini-stat">
+            <div class="mini-stat-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg></div>
+            <div><div class="mini-stat-val" id="s-total">—</div><div class="mini-stat-label">Total</div></div>
+        </div>
+        <div class="mini-stat">
+            <div class="mini-stat-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div><div class="mini-stat-val" id="s-submitted">—</div><div class="mini-stat-label">Submitted</div></div>
+        </div>
+        <div class="mini-stat">
+            <div class="mini-stat-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
+            <div><div class="mini-stat-val" id="s-draft">—</div><div class="mini-stat-label">Drafts</div></div>
+        </div>
+        <div class="mini-stat">
+            <div class="mini-stat-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div>
+            <div><div class="mini-stat-val" id="s-value">—</div><div class="mini-stat-label">Total Value</div></div>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>Bid ID</label>
+            <input class="filter-input" type="number" id="filterBidId" placeholder="e.g. 1042"/>
+        </div>
+        <div class="filter-group">
+            <label>Status</label>
+            <select class="filter-select" id="filterStatus">
+                <option value="">All Statuses</option>
+                <option value="SUBMITTED">SUBMITTED</option>
+                <option value="DRAFT">DRAFT</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Bid Number</label>
+            <input class="filter-input" type="text" id="filterBidNumber" placeholder="e.g. GEM/2024/…"/>
+        </div>
+        <div class="filter-actions">
+            <button class="btn btn-primary" onclick="applyFilters()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+                Apply
+            </button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="section-card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style="color:var(--purple)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg>
+                All Submissions
+            </div>
+            <span id="tableCount" style="font-size:13px;color:var(--sub)">Loading…</span>
+        </div>
+
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Bid ID</th>
+                        <th>Bid Number</th>
+                        <th>Items</th>
+                        <th>Qty</th>
+                        <th>Total Price</th>
+                        <th>Notes</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="submBody">
+                    <tr class="loader-row"><td colspan="9" style="padding:32px 16px">
+                        <div class="skeleton" style="max-width:80%;margin:8px auto"></div>
+                        <div class="skeleton" style="max-width:60%;margin:8px auto"></div>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <div class="pagination-info" id="pageInfo">—</div>
+            <div class="pagination-btns" id="pageBtns"></div>
+        </div>
+    </div>
+
+</main>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawerOverlay">
+    <div class="drawer">
+        <div class="drawer-header">
+            <h3>Submission Details</h3>
+            <button class="drawer-close" onclick="closeDrawer()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <h3>Delete Submission?</h3>
+        <p id="deleteMsg">Are you sure you want to delete this submission? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    let allSubmissions = [];
+    let filtered = [];
+    let currentPage = 1;
+    const PER_PAGE = 15;
+    let pendingDeleteId = null;
+
+    function toast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = type; t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    async function loadSubmissions() {
+        document.getElementById('submBody').innerHTML =
+            `<tr class="loader-row"><td colspan="9" style="padding:32px 16px">
+                <div class="skeleton" style="max-width:70%;margin:10px auto"></div>
+                <div class="skeleton" style="max-width:50%;margin:10px auto"></div>
+            </td></tr>`;
+        try {
+            const res = await fetch('/api/user/submissions');
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || 'Failed');
+            allSubmissions = data.submissions || [];
+            applyFilters();
+            computeStats();
+        } catch (e) {
+            document.getElementById('submBody').innerHTML =
+                `<tr><td colspan="9"><div class="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    <p>Failed to load submissions</p><small>${e.message}</small>
+                </div></td></tr>`;
+        }
+    }
+
+    function computeStats() {
+        const total = allSubmissions.length;
+        const submitted = allSubmissions.filter(s => s.status === 'SUBMITTED').length;
+        const draft = allSubmissions.filter(s => s.status === 'DRAFT').length;
+        const totalVal = allSubmissions.reduce((sum, s) => sum + (Number(s.totalPrice) || 0), 0);
+        document.getElementById('s-total').textContent = total;
+        document.getElementById('s-submitted').textContent = submitted;
+        document.getElementById('s-draft').textContent = draft;
+        document.getElementById('s-value').textContent = '₹' + (totalVal >= 100000
+            ? (totalVal/100000).toFixed(1) + 'L' : totalVal.toLocaleString('en-IN'));
+    }
+
+    function applyFilters() {
+        const bidId = document.getElementById('filterBidId').value.trim();
+        const status = document.getElementById('filterStatus').value;
+        const bidNum = document.getElementById('filterBidNumber').value.trim().toLowerCase();
+
+        filtered = allSubmissions.filter(s => {
+            if (bidId && String(s.bidId) !== bidId) return false;
+            if (status && s.status !== status) return false;
+            if (bidNum && !(s.bidNumber || '').toLowerCase().includes(bidNum)) return false;
+            return true;
+        });
+        currentPage = 1;
+        renderTable();
+    }
+
+    function clearFilters() {
+        document.getElementById('filterBidId').value = '';
+        document.getElementById('filterStatus').value = '';
+        document.getElementById('filterBidNumber').value = '';
+        filtered = [...allSubmissions];
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const start = (currentPage - 1) * PER_PAGE;
+        const page = filtered.slice(start, start + PER_PAGE);
+        const tbody = document.getElementById('submBody');
+        document.getElementById('tableCount').textContent = `${filtered.length} results`;
+
+        if (page.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" style="color:var(--muted)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg>
+                <p>No submissions match your filters</p>
+            </div></td></tr>`;
+            renderPagination();
+            return;
+        }
+
+        tbody.innerHTML = page.map(s => `
+            <tr>
+                <td class="mono">#${s.id || s.submissionId || '—'}</td>
+                <td class="val">${s.bidId || '—'}</td>
+                <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.bidNumber || '—'}</td>
+                <td>${s.bidItems || s.items || '—'}</td>
+                <td>${s.quantity || '—'}</td>
+                <td class="val">₹${s.totalPrice ? Number(s.totalPrice).toLocaleString('en-IN') : '—'}</td>
+                <td class="notes-cell" title="${s.notes || ''}">${s.notes || '—'}</td>
+                <td><span class="sub-status ${(s.status||'').toLowerCase()}">${s.status || '—'}</span></td>
+                <td>
+                    <div style="display:flex;gap:6px;flex-wrap:nowrap">
+                        <button class="btn btn-secondary btn-sm" onclick="viewDetail(${JSON.stringify(s).replace(/"/g,'&quot;')})">View</button>
+                        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${s.id || s.submissionId})">Del</button>
+                    </div>
+                </td>
+            </tr>`).join('');
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const total = filtered.length;
+        const pages = Math.ceil(total / PER_PAGE);
+        const start = (currentPage - 1) * PER_PAGE + 1;
+        const end = Math.min(currentPage * PER_PAGE, total);
+        document.getElementById('pageInfo').textContent = total === 0 ? 'No results' : `${start}–${end} of ${total}`;
+
+        const btns = document.getElementById('pageBtns');
+        btns.innerHTML = '';
+        if (pages <= 1) return;
+
+        const prev = document.createElement('button');
+        prev.className = 'pg-btn'; prev.textContent = '‹';
+        prev.disabled = currentPage === 1;
+        prev.onclick = () => { currentPage--; renderTable(); };
+        btns.appendChild(prev);
+
+        const range = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, pages])]
+            .filter(p => p >= 1 && p <= pages).sort((a, b) => a - b);
+        range.forEach((p, i) => {
+            if (i > 0 && p - range[i-1] > 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '…'; ellipsis.style.cssText = 'padding:0 4px;color:var(--muted);line-height:34px';
+                btns.appendChild(ellipsis);
+            }
+            const btn = document.createElement('button');
+            btn.className = 'pg-btn' + (p === currentPage ? ' active' : '');
+            btn.textContent = p;
+            btn.onclick = () => { currentPage = p; renderTable(); };
+            btns.appendChild(btn);
+        });
+
+        const next = document.createElement('button');
+        next.className = 'pg-btn'; next.textContent = '›';
+        next.disabled = currentPage === pages;
+        next.onclick = () => { currentPage++; renderTable(); };
+        btns.appendChild(next);
+    }
+
+    function viewDetail(sub) {
+        const body = document.getElementById('drawerBody');
+        const rows = [
+            ['Submission ID', '#' + (sub.id || sub.submissionId || '—')],
+            ['Bid ID', sub.bidId || '—'],
+            ['Bid Number', sub.bidNumber || '—'],
+            ['Items', sub.bidItems || sub.items || '—'],
+            ['Quantity', sub.quantity || '—'],
+            ['Quoted Price', sub.quotedPrice ? '₹' + Number(sub.quotedPrice).toLocaleString('en-IN') : '—'],
+            ['Total Price', sub.totalPrice ? '₹' + Number(sub.totalPrice).toLocaleString('en-IN') : '—'],
+            ['Status', sub.status || '—'],
+            ['Notes', sub.notes || '—'],
+            ['Created At', sub.createdAt ? new Date(sub.createdAt).toLocaleString('en-IN') : '—'],
+            ['Updated At', sub.updatedAt ? new Date(sub.updatedAt).toLocaleString('en-IN') : '—'],
+        ];
+        body.innerHTML = rows.map(([label, val]) => `
+            <div class="detail-row">
+                <span class="detail-label">${label}</span>
+                <span class="detail-val">${val}</span>
+            </div>`).join('') +
+            `<div style="margin-top:20px">
+                <button class="btn btn-danger" style="width:100%" onclick="openDeleteModal(${sub.id || sub.submissionId}); closeDrawer()">
+                    Delete This Submission
+                </button>
+            </div>`;
+        document.getElementById('drawerOverlay').classList.add('open');
+    }
+
+    function closeDrawer() { document.getElementById('drawerOverlay').classList.remove('open'); }
+
+    function openDeleteModal(id) {
+        pendingDeleteId = id;
+        document.getElementById('deleteMsg').textContent = `Are you sure you want to delete submission #${id}? This cannot be undone.`;
+        document.getElementById('deleteModal').classList.add('open');
+    }
+    function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('open'); pendingDeleteId = null; }
+
+    async function confirmDelete() {
+        if (!pendingDeleteId) return;
+        closeDeleteModal();
+        try {
+            const res = await fetch(`/api/user/submissions/${pendingDeleteId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { toast('Submission deleted.', 'success'); loadSubmissions(); }
+            else toast('Failed: ' + data.message, 'error');
+        } catch (e) { toast('Error: ' + e.message, 'error'); }
+        pendingDeleteId = null;
+    }
+
+    // Close on overlay click
+    document.getElementById('drawerOverlay').addEventListener('click', e => { if (e.target === document.getElementById('drawerOverlay')) closeDrawer(); });
+    document.getElementById('deleteModal').addEventListener('click', e => { if (e.target === document.getElementById('deleteModal')) closeDeleteModal(); });
+
+    // Check URL param for bidId filter
+    const urlBidId = new URLSearchParams(window.location.search).get('bidId');
+    if (urlBidId) document.getElementById('filterBidId').value = urlBidId;
+
+    loadSubmissions();
+</script>
+</body>
+</html>

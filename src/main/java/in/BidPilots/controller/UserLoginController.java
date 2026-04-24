@@ -34,295 +34,306 @@ import java.util.Map;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = { "http://localhost:8080", "http://10.152.10.210:8080" }, allowCredentials = "true")
+// FIX: Restrict CORS origins — "*" is forbidden when allowCredentials=true
+@CrossOrigin(origins = {"http://localhost:8080", "http://10.152.10.210:8080"}, allowCredentials = "true")
 public class UserLoginController {
 
-	private final UserLoginService userLoginService;
-	private final AuthenticationManager authenticationManager;
-	private final ForgotPasswordService forgotPasswordService;
+    private final UserLoginService    userLoginService;
+    private final AuthenticationManager authenticationManager;
+    private final ForgotPasswordService forgotPasswordService;
 
-	@GetMapping("/login-form")
-	public ModelAndView showLoginForm() {
-		return new ModelAndView("login");
-	}
+    // ── Login form pages ──────────────────────────────────────────────────────
 
-	@GetMapping("/login")
-	public ModelAndView showLoginPage() {
-		return new ModelAndView("login");
-	}
+    @GetMapping("/login-form")
+    public ModelAndView showLoginForm() {
+        return new ModelAndView("login");
+    }
 
-	@PostMapping(value = "/login", produces = "application/json")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody UserLoginDTO loginDTO,
-			HttpServletRequest request) {
-		log.info("🔐 Login request for email: {}", loginDTO.getEmail());
-		Map<String, Object> response = new HashMap<>();
+    @GetMapping("/login")
+    public ModelAndView showLoginPage() {
+        return new ModelAndView("login");
+    }
 
-		try {
-			// Authenticate with Spring Security
-			Authentication authentication = authenticationManager
-					.authenticate(new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword()));
-			SecurityContextHolder.getContext().setAuthentication(authentication);
-			HttpSession session = request.getSession(true);
-			session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+    // ── JSON login (AJAX) ─────────────────────────────────────────────────────
 
-			Map<String, Object> serviceResponse = userLoginService.login(loginDTO);
+    @PostMapping(value = "/login", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> login(
+            @Valid @RequestBody UserLoginDTO loginDTO,
+            HttpServletRequest request) {
 
-			if (serviceResponse.containsKey("success") && (Boolean) serviceResponse.get("success")) {
-				// ── Successful login ──────────────────────────────────────────
-				Object userObj = serviceResponse.get("user");
-				String role = "USER";
-				Map<String, Object> userMap = new HashMap<>();
+        log.info("🔐 Login request for: {}", loginDTO.getEmail());
+        Map<String, Object> response = new HashMap<>();
 
-				if (userObj instanceof UserLoginResponseDTO userDto) {
-					role = userDto.getRole() != null ? userDto.getRole() : "USER";
-					userMap.put("id", userDto.getId());
-					userMap.put("companyName", userDto.getCompanyName());
-					userMap.put("email", userDto.getEmail());
-					userMap.put("mobileNumber", userDto.getMobileNumber());
-					userMap.put("isActive", userDto.getIsActive());
-					userMap.put("isEmailVerified", userDto.getIsEmailVerified());
-					userMap.put("lastLoginAt", userDto.getLastLoginAt());
-					userMap.put("loginCount", userDto.getLoginCount());
-					userMap.put("role", role);
-				} else if (userObj instanceof Map) {
-					userMap = (Map<String, Object>) userObj;
-					role = userMap.getOrDefault("role", "USER").toString();
-				} else {
-					userMap.put("role", role);
-				}
+        // Honour ?redirect=<url> so "Pay Now" on index page lands on the subscription page
+        // after a successful login instead of the dashboard.
+        String redirectParam = request.getParameter("redirect");
 
-				Map<String, Object> finalResponse = new HashMap<>();
-				finalResponse.put("success", true);
-				finalResponse.put("message", serviceResponse.get("message"));
-				finalResponse.put("user", userMap);
-				finalResponse.put("role", role);
-				finalResponse.put("sessionId", session.getId());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            HttpSession session = request.getSession(true);
+            session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-				if ("ADMIN".equalsIgnoreCase(role)) {
-					finalResponse.put("redirectUrl", "/api/admin/dashboard");
-					log.info("✅ Admin login successful");
-				} else {
-					finalResponse.put("redirectUrl", "/api/user/dashboard");
-					log.info("✅ User login successful");
-				}
-				return ResponseEntity.ok().header("Content-Type", "application/json").body(finalResponse);
+            Map<String, Object> svc = userLoginService.login(loginDTO);
 
-			} else {
-				// ── Failed — check if subscription expired ────────────────────
-				// Build redirect URL for the subscription page if expired
-				if (Boolean.TRUE.equals(serviceResponse.get("subscriptionExpired"))) {
-					String redirectUrl = "/subscription/plans" + "?userId=" + serviceResponse.getOrDefault("userId", "")
-							+ "&email=" + serviceResponse.getOrDefault("email", "") + "&expired=true";
-					serviceResponse.put("redirectTo", redirectUrl);
-					log.warn("🔒 Subscription expired — redirecting to plans page");
-				}
-				return ResponseEntity.badRequest().header("Content-Type", "application/json").body(serviceResponse);
-			}
+            if (Boolean.TRUE.equals(svc.get("success"))) {
+                Object userObj = svc.get("user");
+                String role = "USER";
+                Map<String, Object> userMap = new HashMap<>();
 
-		} catch (BadCredentialsException e) {
-			log.error("Bad credentials for: {}", loginDTO.getEmail());
-			response.put("success", false);
-			response.put("message", "Invalid email or password");
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-		} catch (DisabledException e) {
-			response.put("success", false);
-			response.put("message", "Account is disabled");
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-		} catch (LockedException e) {
-			response.put("success", false);
-			response.put("message", "Account is locked");
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-		} catch (Exception e) {
-			log.error("Authentication failed: {}", e.getMessage(), e);
-			response.put("success", false);
-			response.put("message", "Invalid email or password");
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-		}
-	}
+                if (userObj instanceof UserLoginResponseDTO dto) {
+                    role = dto.getRole() != null ? dto.getRole() : "USER";
+                    userMap.put("id",              dto.getId());
+                    userMap.put("companyName",     dto.getCompanyName());
+                    userMap.put("email",           dto.getEmail());
+                    userMap.put("mobileNumber",    dto.getMobileNumber());
+                    userMap.put("isActive",        dto.getIsActive());
+                    userMap.put("isEmailVerified", dto.getIsEmailVerified());
+                    userMap.put("lastLoginAt",     dto.getLastLoginAt());
+                    userMap.put("loginCount",      dto.getLoginCount());
+                    userMap.put("role",            role);
+                } else if (userObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> cast = (Map<String, Object>) userObj;
+                    userMap = cast;
+                    role    = userMap.getOrDefault("role", "USER").toString();
+                }
 
-	@PostMapping("/form-login")
-	public ModelAndView formLogin(@Valid UserLoginDTO loginDTO, HttpServletRequest request) {
-		log.info("📝 Form login for email: {}", loginDTO.getEmail());
-		try {
-			Authentication authentication = authenticationManager
-					.authenticate(new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword()));
-			SecurityContextHolder.getContext().setAuthentication(authentication);
-			HttpSession session = request.getSession(true);
-			session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+                Map<String, Object> out = new HashMap<>();
+                out.put("success",     true);
+                out.put("message",     svc.get("message"));
+                out.put("user",        userMap);
+                out.put("role",        role);
+                out.put("sessionId",   session.getId());
+                // Resolve post-login destination: honour safe redirect param if provided
+                String defaultDashboard = "ADMIN".equalsIgnoreCase(role)
+                        ? "/api/admin/dashboard" : "/api/user/dashboard";
+                String resolvedRedirect = resolveRedirectUrl(redirectParam, defaultDashboard);
+                out.put("redirectUrl", resolvedRedirect);
 
-			Map<String, Object> response = userLoginService.login(loginDTO);
-			ModelAndView mav = new ModelAndView();
+                log.info("✅ Login success: {} (role={}) → {}", loginDTO.getEmail(), role, resolvedRedirect);
+                return ResponseEntity.ok(out);
 
-			if (response.containsKey("success") && (Boolean) response.get("success")) {
-				String role = "USER";
-				Object userObj = response.get("user");
-				if (userObj instanceof UserLoginResponseDTO userDto)
-					role = userDto.getRole() != null ? userDto.getRole() : "USER";
-				else if (userObj instanceof Map userMap)
-					role = userMap.getOrDefault("role", "USER").toString();
+            } else {
+                // Subscription expired — include redirect URL for plans page
+                if (Boolean.TRUE.equals(svc.get("subscriptionExpired"))) {
+                    String url = "/subscription/plans?userId=" + svc.getOrDefault("userId", "")
+                            + "&email=" + svc.getOrDefault("email", "") + "&expired=true";
+                    svc.put("redirectTo", url);
+                    log.warn("🔒 Subscription expired: {}", loginDTO.getEmail());
+                }
+                return ResponseEntity.badRequest().body(svc);
+            }
 
-				mav.setViewName("ADMIN".equalsIgnoreCase(role) ? "redirect:/api/admin/dashboard"
-						: "redirect:/api/user/dashboard");
-				mav.addObject("user", response.get("user"));
-			} else if (Boolean.TRUE.equals(response.get("subscriptionExpired"))) {
-				// Redirect directly to subscription plans page
-				String url = "/subscription/plans?userId=" + response.getOrDefault("userId", "") + "&email="
-						+ response.getOrDefault("email", "") + "&expired=true";
-				mav.setViewName("redirect:" + url);
-			} else {
-				mav.setViewName("login");
-				mav.addObject("error", response.get("message"));
-				mav.addObject("email", loginDTO.getEmail());
-			}
-			return mav;
+        } catch (BadCredentialsException e) {
+            response.put("success", false);
+            response.put("message", "Invalid email or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        } catch (DisabledException e) {
+            response.put("success", false);
+            response.put("message", "Account is disabled");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        } catch (LockedException e) {
+            response.put("success", false);
+            response.put("message", "Account is locked. Please try again later.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        } catch (Exception e) {
+            log.error("Login error: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Login failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 
-		} catch (BadCredentialsException e) {
-			ModelAndView mav = new ModelAndView("login");
-			mav.addObject("error", "Invalid email or password");
-			mav.addObject("email", loginDTO.getEmail());
-			return mav;
-		} catch (Exception e) {
-			ModelAndView mav = new ModelAndView("login");
-			mav.addObject("error", "Invalid email or password");
-			mav.addObject("email", loginDTO.getEmail());
-			return mav;
-		}
-	}
+    // ── Form (non-AJAX) login ─────────────────────────────────────────────────
 
-	@PostMapping("/logout")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request, HttpServletResponse response) {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		if (auth != null)
-			new SecurityContextLogoutHandler().logout(request, response, auth);
-		Map<String, Object> result = new HashMap<>();
-		result.put("success", true);
-		result.put("message", "Logged out successfully");
-		return ResponseEntity.ok(result);
-	}
+    @PostMapping("/form-login")
+    public ModelAndView formLogin(@Valid UserLoginDTO loginDTO, HttpServletRequest request) {
+        log.info("📝 Form login for: {}", loginDTO.getEmail());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            HttpSession session = request.getSession(true);
+            session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-	@GetMapping("/session-status")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> checkSession(HttpServletRequest request) {
-		HttpSession session = request.getSession(false);
-		Map<String, Object> response = new HashMap<>();
-		if (session != null) {
-			response.put("hasSession", true);
-			response.put("sessionId", session.getId());
-			Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-			if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-				response.put("authenticated", true);
-				response.put("username", auth.getName());
-				response.put("roles", auth.getAuthorities().toString());
-			}
-		} else {
-			response.put("hasSession", false);
-		}
-		return ResponseEntity.ok(response);
-	}
+            Map<String, Object> svc = userLoginService.login(loginDTO);
+            ModelAndView mav = new ModelAndView();
 
-	@GetMapping("/current-user")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> getCurrentUser() {
-		Map<String, Object> response = new HashMap<>();
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-			response.put("success", true);
-			response.put("authenticated", true);
-			response.put("username", auth.getName());
-			response.put("roles", auth.getAuthorities().toString());
-			Map<String, Object> userResponse = userLoginService.getUserByEmail(auth.getName());
-			if (Boolean.TRUE.equals(userResponse.get("success")))
-				response.put("user", userResponse.get("user"));
-		} else {
-			response.put("success", false);
-			response.put("authenticated", false);
-			response.put("message", "Not authenticated");
-		}
-		return ResponseEntity.ok(response);
-	}
+            if (Boolean.TRUE.equals(svc.get("success"))) {
+                String role = "USER";
+                Object userObj = svc.get("user");
+                if (userObj instanceof UserLoginResponseDTO dto)
+                    role = dto.getRole() != null ? dto.getRole() : "USER";
+                else if (userObj instanceof Map map)
+                    role = map.getOrDefault("role", "USER").toString();
 
-	// ─────────────────────────────────────────────────────────────
-	// FORGOT PASSWORD ENDPOINTS
-	// ─────────────────────────────────────────────────────────────
+                mav.setViewName("ADMIN".equalsIgnoreCase(role)
+                        ? "redirect:/api/admin/dashboard"
+                        : "redirect:/api/user/dashboard");
+                mav.addObject("user", svc.get("user"));
+            } else if (Boolean.TRUE.equals(svc.get("subscriptionExpired"))) {
+                String url = "/subscription/plans?userId=" + svc.getOrDefault("userId", "")
+                        + "&email=" + svc.getOrDefault("email", "") + "&expired=true";
+                mav.setViewName("redirect:" + url);
+            } else {
+                mav.setViewName("login");
+                mav.addObject("error", svc.get("message"));
+                mav.addObject("email", loginDTO.getEmail());
+            }
+            return mav;
 
-	/**
-	 * Send OTP for password reset
-	 */
-	@PostMapping("/forgot-password")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
-		log.info("🔐 Forgot password request for email: {}", request.getEmail());
+        } catch (BadCredentialsException e) {
+            ModelAndView mav = new ModelAndView("login");
+            mav.addObject("error", "Invalid email or password");
+            mav.addObject("email", loginDTO.getEmail());
+            return mav;
+        } catch (Exception e) {
+            log.error("Form login error: {}", e.getMessage(), e);
+            ModelAndView mav = new ModelAndView("login");
+            mav.addObject("error", "Login failed. Please try again.");
+            mav.addObject("email", loginDTO.getEmail());
+            return mav;
+        }
+    }
 
-		Map<String, Object> response = forgotPasswordService.sendPasswordResetOTP(request.getEmail());
+    // ── Logout ────────────────────────────────────────────────────────────────
 
-		if (response.containsKey("success") && (Boolean) response.get("success")) {
-			return ResponseEntity.ok(response);
-		} else {
-			return ResponseEntity.badRequest().body(response);
-		}
-	}
+    @PostMapping("/logout")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> logout(
+            HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null)
+            new SecurityContextLogoutHandler().logout(request, response, auth);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Logged out successfully"));
+    }
 
-	/**
-	 * Reset password with OTP verification
-	 */
-	@PostMapping("/reset-password")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
-		log.info("🔐 Reset password request for email: {}", request.getEmail());
+    // ── Session & current user ─────────────────────────────────────────────────
 
-		// Validate password match
-		if (!request.isPasswordMatch()) {
-			Map<String, Object> error = new HashMap<>();
-			error.put("success", false);
-			error.put("message", "Passwords do not match");
-			return ResponseEntity.badRequest().body(error);
-		}
+    @GetMapping("/session-status")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> checkSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        Map<String, Object> response = new HashMap<>();
+        if (session != null) {
+            response.put("hasSession", true);
+            response.put("sessionId", session.getId());
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                response.put("authenticated", true);
+                response.put("username", auth.getName());
+                response.put("roles", auth.getAuthorities().toString());
+            }
+        } else {
+            response.put("hasSession", false);
+        }
+        return ResponseEntity.ok(response);
+    }
 
-		Map<String, Object> response = forgotPasswordService.resetPassword(request.getEmail(), request.getOtp(),
-				request.getNewPassword(), request.getConfirmPassword());
+    @GetMapping("/current-user")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCurrentUser() {
+        Map<String, Object> response = new HashMap<>();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            response.put("success",       true);
+            response.put("authenticated", true);
+            response.put("username",      auth.getName());
+            response.put("roles",         auth.getAuthorities().toString());
+            Map<String, Object> userResponse = userLoginService.getUserByEmail(auth.getName());
+            if (Boolean.TRUE.equals(userResponse.get("success")))
+                response.put("user", userResponse.get("user"));
+        } else {
+            response.put("success",       false);
+            response.put("authenticated", false);
+            response.put("message",       "Not authenticated");
+        }
+        return ResponseEntity.ok(response);
+    }
 
-		if (response.containsKey("success") && (Boolean) response.get("success")) {
-			return ResponseEntity.ok(response);
-		} else {
-			return ResponseEntity.badRequest().body(response);
-		}
-	}
+    // ── Forgot / reset password ───────────────────────────────────────────────
 
-	/**
-	 * Resend OTP for password reset
-	 */
-	@PostMapping("/resend-password-otp")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> resendPasswordOTP(@Valid @RequestBody ForgotPasswordRequestDTO request) {
-		log.info("🔄 Resend password OTP request for email: {}", request.getEmail());
+    @PostMapping("/forgot-password")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDTO req) {
+        log.info("🔐 Forgot password for: {}", req.getEmail());
+        Map<String, Object> res = forgotPasswordService.sendPasswordResetOTP(req.getEmail());
+        return Boolean.TRUE.equals(res.get("success"))
+                ? ResponseEntity.ok(res)
+                : ResponseEntity.badRequest().body(res);
+    }
 
-		Map<String, Object> response = forgotPasswordService.resendPasswordResetOTP(request.getEmail());
+    /**
+     * Verify the OTP and get back a short-lived reset token (not the OTP).
+     * The client passes this token to /reset-password.
+     */
+    @PostMapping("/verify-reset-otp")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> verifyResetOTP(
+            @Valid @RequestBody OTPVerificationDTO req) {
+        log.info("🔐 Verify reset OTP for: {}", req.getEmail());
+        Map<String, Object> res = forgotPasswordService.verifyResetOTP(req.getEmail(), req.getOtp());
+        return Boolean.TRUE.equals(res.get("success"))
+                ? ResponseEntity.ok(res)
+                : ResponseEntity.badRequest().body(res);
+    }
 
-		if (response.containsKey("success") && (Boolean) response.get("success")) {
-			return ResponseEntity.ok(response);
-		} else {
-			return ResponseEntity.badRequest().body(response);
-		}
-	}
+    /**
+     * PRODUCTION FIX: accepts resetToken (UUID from verifyResetOTP) instead of raw OTP.
+     * ResetPasswordRequestDTO must have a resetToken field (replacing the old otp field).
+     */
+    @PostMapping("/reset-password")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequestDTO req) {
+        log.info("🔐 Reset password for: {}", req.getEmail());
 
-	
+        if (!req.isPasswordMatch()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "Passwords do not match"));
+        }
 
-	/**
-	 * Verify OTP for password reset (separate from registration OTP)
-	 */
-	@PostMapping("/verify-reset-otp")
-	@ResponseBody
-	public ResponseEntity<Map<String, Object>> verifyResetOTP(@Valid @RequestBody OTPVerificationDTO request) {
-		log.info("🔐 Verify password reset OTP for email: {}", request.getEmail());
+        Map<String, Object> res = forgotPasswordService.resetPassword(
+                req.getEmail(),
+                req.getResetToken(),   // server-side token, NOT the OTP
+                req.getNewPassword(),
+                req.getConfirmPassword());
 
-		Map<String, Object> response = forgotPasswordService.verifyResetOTP(request.getEmail(), request.getOtp());
+        return Boolean.TRUE.equals(res.get("success"))
+                ? ResponseEntity.ok(res)
+                : ResponseEntity.badRequest().body(res);
+    }
 
-		if (response.containsKey("success") && (Boolean) response.get("success")) {
-			return ResponseEntity.ok(response);
-		} else {
-			return ResponseEntity.badRequest().body(response);
-		}
-	}
+    @PostMapping("/resend-password-otp")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> resendPasswordOTP(
+            @Valid @RequestBody ForgotPasswordRequestDTO req) {
+        log.info("🔄 Resend password OTP for: {}", req.getEmail());
+        Map<String, Object> res = forgotPasswordService.resendPasswordResetOTP(req.getEmail());
+        return Boolean.TRUE.equals(res.get("success"))
+                ? ResponseEntity.ok(res)
+                : ResponseEntity.badRequest().body(res);
+    }
+    /**
+     * Validates and resolves the post-login redirect URL.
+     * Only allows relative URLs starting with "/" to prevent open-redirect attacks.
+     * Falls back to defaultUrl if redirectParam is null, blank, or external.
+     */
+    private String resolveRedirectUrl(String redirectParam, String defaultUrl) {
+        if (redirectParam == null || redirectParam.isBlank()) return defaultUrl;
+        String decoded;
+        try {
+            decoded = java.net.URLDecoder.decode(redirectParam, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return defaultUrl;
+        }
+        // Block external URLs and protocol-relative URLs
+        if (!decoded.startsWith("/") || decoded.startsWith("//")) return defaultUrl;
+        return decoded;
+    }
+
 }
