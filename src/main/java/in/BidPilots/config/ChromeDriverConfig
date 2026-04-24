@@ -1,0 +1,90 @@
+package in.BidPilots.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+
+import jakarta.annotation.PostConstruct;
+import java.io.File;
+
+/**
+ * Configures Selenium to use the system-installed Chromium binary
+ * inside the Railway/Docker container instead of letting WebDriverManager
+ * download ChromeDriver at runtime.
+ *
+ * Root cause of the original crash:
+ *   1. Alpine base image (musl libc) — Chrome needs glibc → fixed in Dockerfile
+ *      by switching to eclipse-temurin:21-jre-jammy (Ubuntu).
+ *   2. WDM downloaded chromedriver to /root/.cache/selenium/ but the file
+ *      was not executable → "Exec failed, error: 2 (No such file or directory)".
+ *
+ * Fix: set webdriver.chrome.driver system property to the apt-installed binary
+ * (/usr/bin/chromedriver) BEFORE any ChromeDriver is instantiated.
+ * Selenium reads this property and uses it directly — no WDM download needed.
+ *
+ * NOTE: Do NOT call WebDriverManager.chromedriver().setup() after setting this
+ * property, as that would override it with a freshly downloaded path.
+ */
+@Configuration
+@Slf4j
+public class ChromeDriverConfig {
+
+    // Paths installed by apt-get in the Dockerfile (Ubuntu jammy)
+    private static final String[] CHROME_CANDIDATES = {
+        "/usr/bin/chromium-browser",    // Ubuntu — installed by Dockerfile
+        "/usr/bin/chromium",            // Debian variant
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/google-chrome",
+    };
+
+    private static final String[] CHROMEDRIVER_CANDIDATES = {
+        "/usr/bin/chromedriver",        // Ubuntu — installed by Dockerfile
+        "/usr/lib/chromium-browser/chromedriver",
+        "/usr/lib/chromium/chromedriver",
+    };
+
+    @PostConstruct
+    public void configureChrome() {
+        try {
+            // ── 1. Locate Chrome binary ───────────────────────────────────────
+            String chromeBin = resolveFirst(CHROME_CANDIDATES, System.getenv("CHROME_BIN"));
+            if (StringUtils.hasText(chromeBin)) {
+                // Selenium / ChromeOptions picks this up automatically
+                System.setProperty("webdriver.chrome.bin", chromeBin);
+                log.info("🔧 Chrome binary set → {}", chromeBin);
+            } else {
+                log.warn("⚠️  No Chrome binary found on filesystem — scraping will be unavailable");
+                return;
+            }
+
+            // ── 2. Locate ChromeDriver binary ─────────────────────────────────
+            String driverPath = resolveFirst(CHROMEDRIVER_CANDIDATES, System.getenv("CHROMEDRIVER_PATH"));
+            if (StringUtils.hasText(driverPath)) {
+                // This single property is all Selenium needs — no WDM call required
+                System.setProperty("webdriver.chrome.driver", driverPath);
+                log.info("🔧 ChromeDriver binary set → {}", driverPath);
+                log.info("✅ Selenium configured to use system binaries — WDM download skipped");
+            } else {
+                log.warn("⚠️  No ChromeDriver binary found — Selenium will fail to start sessions");
+            }
+
+        } catch (Exception e) {
+            // Non-fatal: registration/login/payment all still work without scraping
+            log.error("❌ ChromeDriverConfig setup failed (scraping unavailable): {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Returns the first path from {@code candidates} (or {@code envOverride} if set)
+     * that exists as a regular executable file.
+     */
+    private String resolveFirst(String[] candidates, String envOverride) {
+        if (StringUtils.hasText(envOverride) && new File(envOverride).isFile()) {
+            return envOverride;
+        }
+        for (String path : candidates) {
+            if (new File(path).isFile()) return path;
+        }
+        return null;
+    }
+}
