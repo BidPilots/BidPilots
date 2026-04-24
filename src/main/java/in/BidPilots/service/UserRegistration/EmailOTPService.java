@@ -7,6 +7,7 @@ import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -57,22 +58,33 @@ public class EmailOTPService {
             String otp = generateSecureOTP();
             evictExpiredOTPs();
             otpStore.put(email, new OTPData(otp, LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
+
+            // Send synchronously so we can report failure back to the caller
             sendOTPEmail(email, otp);
-            log.info("📧 OTP sent via Gmail to: {}", email);
+
+            log.info("📧 OTP sent via Gmail SMTP to: {}", email);
             res.put("success",       true);
             res.put("message",       "OTP sent to " + email);
             res.put("email",         email);
             res.put("expiryMinutes", OTP_EXPIRY_MINUTES);
+
         } catch (MailAuthenticationException e) {
-            log.error("❌ Gmail authentication failed — check App Password: {}", e.getMessage());
+            // Bad Gmail App Password or 2FA not enabled
+            log.error("❌ Gmail AUTH failed — verify GMAIL_APP_PASSWORD env var on Railway: {}", e.getMessage());
+            otpStore.remove(email); // don't leave an undelivered OTP in store
             res.put("success", false);
             res.put("message", "Email service authentication failed. Please contact support.");
+
         } catch (MailSendException e) {
-            log.error("❌ Gmail send failed for {}: {}", email, e.getMessage());
+            // Network error — Railway blocked the port, or Gmail rejected the connection
+            log.error("❌ Gmail SEND failed for {} — likely port blocked or rate-limit: {}", email, e.getMessage());
+            otpStore.remove(email);
             res.put("success", false);
-            res.put("message", "Could not send OTP email. Please try again.");
+            res.put("message", "Could not send OTP email. Please try again in a moment.");
+
         } catch (Exception e) {
-            log.error("❌ generateAndSendOTP error for {}: {}", email, e.getMessage(), e);
+            log.error("❌ generateAndSendOTP unexpected error for {}: {}", email, e.getMessage(), e);
+            otpStore.remove(email);
             res.put("success", false);
             res.put("message", "Could not send OTP. Please try again.");
         }
@@ -141,20 +153,27 @@ public class EmailOTPService {
             String newOtp = generateSecureOTP();
             otpStore.put(email, new OTPData(newOtp, LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
             sendOTPEmail(email, newOtp);
+
             log.info("📧 OTP resent via Gmail to: {}", email);
             res.put("success",       true);
             res.put("message",       "New OTP sent to " + email);
             res.put("expiryMinutes", OTP_EXPIRY_MINUTES);
+
         } catch (MailAuthenticationException e) {
-            log.error("❌ Gmail authentication failed on resend: {}", e.getMessage());
+            log.error("❌ Gmail AUTH failed on resend: {}", e.getMessage());
+            otpStore.remove(email);
             res.put("success", false);
             res.put("message", "Email service authentication failed. Please contact support.");
+
         } catch (MailSendException e) {
-            log.error("❌ Gmail resend failed for {}: {}", email, e.getMessage());
+            log.error("❌ Gmail resend SEND failed for {}: {}", email, e.getMessage());
+            otpStore.remove(email);
             res.put("success", false);
             res.put("message", "Could not resend OTP. Please try again.");
+
         } catch (Exception e) {
             log.error("❌ resendOTP error for {}: {}", email, e.getMessage(), e);
+            otpStore.remove(email);
             res.put("success", false);
             res.put("message", "Could not resend OTP. Please try again.");
         }
@@ -162,7 +181,7 @@ public class EmailOTPService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // CHECK IF OTP EXISTS
+    // CHECK IF OTP EXISTS (non-expired)
     // ─────────────────────────────────────────────────────────────
 
     public boolean hasOTP(String email) {
@@ -171,9 +190,10 @@ public class EmailOTPService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // WELCOME EMAIL (best-effort — never throws)
+    // WELCOME EMAIL — async, best-effort, never throws
     // ─────────────────────────────────────────────────────────────
 
+    @Async("matchingTaskExecutor")
     public void sendWelcomeEmail(String toEmail, String companyName) {
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
@@ -189,7 +209,8 @@ public class EmailOTPService {
             mailSender.send(msg);
             log.info("✅ Welcome email sent to: {}", toEmail);
         } catch (Exception e) {
-            log.warn("Welcome email failed for {}: {}", toEmail, e.getMessage());
+            // Non-fatal — user is already registered; welcome email is best-effort
+            log.warn("⚠️ Welcome email failed for {} (non-fatal): {}", toEmail, e.getMessage());
         }
     }
 
@@ -209,12 +230,12 @@ public class EmailOTPService {
             "If you did not request this, please ignore this email.\n\n" +
             "— BidPilots Security"
         );
-        mailSender.send(msg);
+        mailSender.send(msg);  // throws on failure — callers handle it
     }
 
     private String generateSecureOTP() {
         StringBuilder sb = new StringBuilder(OTP_LENGTH);
-        sb.append(1 + RNG.nextInt(9));
+        sb.append(1 + RNG.nextInt(9));                      // first digit 1–9 (no leading zero)
         for (int i = 1; i < OTP_LENGTH; i++) sb.append(RNG.nextInt(10));
         return sb.toString();
     }
@@ -223,7 +244,7 @@ public class EmailOTPService {
         try {
             otpStore.entrySet().removeIf(e -> e.getValue().isExpired());
             if (otpStore.size() > MAX_OTP_ENTRIES) {
-                log.warn("⚠️ OTP store exceeded {} — clearing all", MAX_OTP_ENTRIES);
+                log.warn("⚠️ OTP store exceeded {} entries — clearing all", MAX_OTP_ENTRIES);
                 otpStore.clear();
             }
         } catch (Exception e) {
@@ -232,6 +253,9 @@ public class EmailOTPService {
     }
 
     private Map<String, Object> error(String message) {
-        return Map.of("success", false, "message", message);
+        Map<String, Object> r = new HashMap<>();
+        r.put("success", false);
+        r.put("message", message);
+        return r;
     }
 }
