@@ -30,6 +30,21 @@ public class City {
 	@Column(name = "is_deactive")
 	private Boolean isDeactive = false;
 
+	/**
+	 * Demand-driven scraping flag.
+	 *
+	 * Set to TRUE the first time any user saves a filter that includes this city.
+	 * GeMScrapingService will skip cities where is_demanded = false, dramatically
+	 * reducing the number of state-city combinations scraped from GeM portal.
+	 *
+	 * Never reset to false — once a city is demanded it stays demanded.
+	 *
+	 * DB migration: ALTER TABLE cities ADD COLUMN is_demanded BOOLEAN DEFAULT FALSE;
+	 *               CREATE INDEX idx_cities_demanded ON cities(is_demanded);
+	 */
+	@Column(name = "is_demanded")
+	private Boolean isDemanded = false;
+
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "state_id", nullable = false)
 	@JsonIgnoreProperties({ "cities", "bids" })

@@ -5,16 +5,13 @@ import java.math.RoundingMode;
 
 /**
  * Single source of truth for all subscription plan metadata.
- * Replaces the deleted {@code in.BidPilots.config.SubscriptionPlan} enum.
  *
- * Drop this file into:
+ * File location:
  *   /BidPilots/src/main/java/in/BidPilots/enums/PlanDuration.java
- * Then delete:
- *   /BidPilots/src/main/java/in/BidPilots/config/SubscriptionPlan.java
  */
 public enum PlanDuration {
 
-    //              priceRupees  days   displayName
+    //                priceRupees  days   displayName
     TRIAL       (0,          30,  "Free Trial"),
     MONTHLY     (199,        30,  "1 Month"),
     QUARTERLY   (499,        90,  "3 Months"),
@@ -31,22 +28,22 @@ public enum PlanDuration {
         this.displayName  = displayName;
     }
 
-    // ── Primitive accessors ───────────────────────────────────────
+    // ── Primitive accessors ───────────────────────────────────────────────────
 
-    public int     getPriceRupees()  { return priceRupees; }
-    public int     getPricePaise()   { return priceRupees * 100; }
-    public int     getDurationDays() { return durationDays; }
-    public String  getDisplayName()  { return displayName; }
-    public boolean isFree()          { return priceRupees == 0; }
+    public int    getPriceRupees()  { return priceRupees; }
+    public int    getPricePaise()   { return priceRupees * 100; }
+    public int    getDurationDays() { return durationDays; }
+    public String getDisplayName()  { return displayName; }
+    public boolean isFree()         { return priceRupees == 0; }
 
-    // ── BigDecimal / Razorpay accessors ───────────────────────────
+    // ── BigDecimal / Razorpay accessors ──────────────────────────────────────
 
-    /** Price as BigDecimal, e.g. 199.00 — for display and persistence. */
+    /** Price as BigDecimal e.g. 199.00 — for display and persistence */
     public BigDecimal getPrice() {
         return new BigDecimal(priceRupees).setScale(2, RoundingMode.UNNECESSARY);
     }
 
-    /** Amount in paise as long — required by the Razorpay Orders API. */
+    /** Amount in paise as long — required by Razorpay Orders API */
     public long getAmountInPaise() {
         return (long) priceRupees * 100;
     }
@@ -57,9 +54,9 @@ public enum PlanDuration {
         return getPrice().divide(new BigDecimal(durationDays), 1, RoundingMode.HALF_UP);
     }
 
-    // ── Factory ───────────────────────────────────────────────────
+    // ── Factory ───────────────────────────────────────────────────────────────
 
-    /** Case-insensitive lookup, e.g. fromPlanType("monthly") -> MONTHLY */
+    /** Case-insensitive lookup — fromPlanType("monthly") → MONTHLY */
     public static PlanDuration fromPlanType(String planType) {
         if (planType == null || planType.isBlank())
             throw new IllegalArgumentException("Plan type must not be blank");

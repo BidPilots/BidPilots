@@ -2,8 +2,9 @@ package in.BidPilots.controller;
 
 import in.BidPilots.dto.MatchedBidDTO;
 import in.BidPilots.entity.Bid;
+import in.BidPilots.entity.BidDetails;
 import in.BidPilots.entity.MatchedBids;
-import in.BidPilots.entity.User;
+import in.BidPilots.repository.BidDetailsRepository;
 import in.BidPilots.repository.BidRepository;
 import in.BidPilots.repository.MatchedBidsRepository;
 import in.BidPilots.repository.UserRegistrationRepository;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +31,10 @@ public class MatchedBidsController {
 
     private final MatchedBidsRepository matchedBidsRepository;
     private final BidRepository bidRepository;
+    private final BidDetailsRepository bidDetailsRepository;
     private final UserRegistrationRepository userRepository;
 
-    // ------------------------------------------------------------------
-    // Helper: resolve user ID from JWT, write 401 body on failure.
-    // ------------------------------------------------------------------
+    // ── Helper: resolve user ID from JWT ──────────────────────────────────────
     private Long resolveUserId(Authentication auth, Map<String, Object> errOut) {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             errOut.put("success", false);
@@ -51,52 +52,13 @@ public class MatchedBidsController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<Map<String, Object>> getMatchedBids() {
-        log.info("📋 Fetching matched bids for current user");
+    // =========================================================================
+    //  NOTE: GET /api/user/matches endpoint is REMOVED because UserBidController 
+    //  already provides this with complete RA date fields (raStartDate, raEndDate).
+    //  The frontend now uses UserBidController's /api/user/matches endpoint.
+    // =========================================================================
 
-        Map<String, Object> errResponse = new HashMap<>();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = resolveUserId(auth, errResponse);
-        if (userId == null) return ResponseEntity.status(401).body(errResponse);
-
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            List<MatchedBids> matches = matchedBidsRepository.findByUserIdOrderByMatchedAtDesc(userId);
-
-            // FIX: Collect all bid IDs first, then fetch in ONE query (eliminates N+1).
-            // Original code did bidRepository.findById(match.getBidId()) inside a loop —
-            // one SELECT per match row, which destroys performance at scale.
-            Set<Long> bidIds = matches.stream()
-                    .map(MatchedBids::getBidId)
-                    .collect(Collectors.toSet());
-
-            Map<Long, Bid> bidMap = bidRepository.findAllById(bidIds)
-                    .stream()
-                    .collect(Collectors.toMap(Bid::getId, b -> b));
-
-            List<MatchedBidDTO> dtos = matches.stream()
-                    .map(m -> MatchedBidDTO.fromEntity(m, bidMap.get(m.getBidId())))
-                    .collect(Collectors.toList());
-
-            long unviewedCount = matches.stream().filter(m -> !m.getIsViewed()).count();
-
-            response.put("success", true);
-            response.put("matches", dtos);
-            response.put("total", dtos.size());
-            response.put("unviewed", unviewedCount);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error fetching matched bids: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Failed to fetch matched bids: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
+    // ── GET /api/user/matches/unviewed/count ──────────────────────────────────
     @GetMapping("/unviewed/count")
     public ResponseEntity<Map<String, Object>> getUnviewedCount() {
         Map<String, Object> errResponse = new HashMap<>();
@@ -120,11 +82,7 @@ public class MatchedBidsController {
         }
     }
 
-    /**
-     * Bulk mark-as-viewed.
-     * FIX: Only marks records that belong to the authenticated user
-     * (the JPQL in markAsViewed already filters by userId).
-     */
+    // ── POST /api/user/matches/viewed ─────────────────────────────────────────
     @PostMapping("/viewed")
     public ResponseEntity<Map<String, Object>> markAsViewed(@RequestBody List<Long> matchIds) {
         Map<String, Object> errResponse = new HashMap<>();
@@ -148,10 +106,7 @@ public class MatchedBidsController {
         }
     }
 
-    /**
-     * Single mark-as-viewed.
-     * FIX: Ownership check is preserved.
-     */
+    // ── POST /api/user/matches/{matchId}/viewed ───────────────────────────────
     @PostMapping("/{matchId}/viewed")
     public ResponseEntity<Map<String, Object>> markSingleAsViewed(@PathVariable Long matchId) {
         Map<String, Object> errResponse = new HashMap<>();
@@ -163,7 +118,7 @@ public class MatchedBidsController {
 
         try {
             MatchedBids match = matchedBidsRepository.findById(matchId).orElse(null);
-            if (match == null) {
+            if (match == null || Boolean.TRUE.equals(match.getIsDeleted())) {
                 response.put("success", false);
                 response.put("message", "Match not found");
                 return ResponseEntity.status(404).body(response);
@@ -185,6 +140,87 @@ public class MatchedBidsController {
             log.error("Error marking match as viewed: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Failed to mark match: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // ── DELETE /api/user/matches/{matchId} ───────────────────────────────
+    /**
+     * Soft-deletes (dismisses) a single matched bid for the authenticated user.
+     *
+     * The row is NOT physically removed — it is kept with isDeleted = true so that
+     * the 15-minute scheduling job's existsByUserIdAndBidId check continues to
+     * return true, permanently preventing the same bid from reappearing.
+     *
+     * Returns 404 if the match does not exist or belongs to a different user.
+     */
+    @DeleteMapping("/{matchId}")
+    public ResponseEntity<Map<String, Object>> dismissMatch(@PathVariable Long matchId) {
+        Map<String, Object> errResponse = new HashMap<>();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = resolveUserId(auth, errResponse);
+        if (userId == null) return ResponseEntity.status(401).body(errResponse);
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            int updated = matchedBidsRepository.softDeleteByIdAndUserId(matchId, userId);
+
+            if (updated == 0) {
+                response.put("success", false);
+                response.put("message", "Match not found or already dismissed");
+                return ResponseEntity.status(404).body(response);
+            }
+
+            log.info("User {} dismissed matched bid matchId={}", userId, matchId);
+            response.put("success", true);
+            response.put("message", "Bid dismissed. It will not reappear in future matches.");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error dismissing match {} for user {}: {}", matchId, userId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Failed to dismiss match: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // ── DELETE /api/user/matches (bulk dismiss) ─────────────────────────
+    /**
+     * Soft-deletes multiple matched bids for the authenticated user in one call.
+     * Request body: JSON array of match IDs, e.g. [1, 5, 9]
+     *
+     * Each dismissed bid is kept in matched_bids with isDeleted = true,
+     * so the 15-min scheduler will never re-insert any of them.
+     */
+    @DeleteMapping
+    public ResponseEntity<Map<String, Object>> dismissMatches(@RequestBody List<Long> matchIds) {
+        Map<String, Object> errResponse = new HashMap<>();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = resolveUserId(auth, errResponse);
+        if (userId == null) return ResponseEntity.status(401).body(errResponse);
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (matchIds == null || matchIds.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "No match IDs provided");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            int updated = matchedBidsRepository.softDeleteByIdsAndUserId(matchIds, userId);
+
+            log.info("User {} dismissed {} matched bid(s)", userId, updated);
+            response.put("success", true);
+            response.put("dismissed", updated);
+            response.put("message", updated + " bid(s) dismissed. They will not reappear.");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error bulk-dismissing matches for user {}: {}", userId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Failed to dismiss matches: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
     }

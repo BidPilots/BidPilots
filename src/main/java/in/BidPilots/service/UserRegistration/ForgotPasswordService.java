@@ -13,305 +13,310 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * PRODUCTION FIX — ForgotPasswordService
+ *
+ * ORIGINAL PROBLEMS:
+ *
+ *  1. SECURITY — resetPassword() trusted the OTP sent by the client in the
+ *     request body. After verifyResetOTP() consumed the OTP from EmailOTPService,
+ *     the reset step had NO actual server-side verification. Any client could
+ *     skip the OTP step and POST any value as "otp" to reset a password.
+ *
+ *  2. SECURITY — verifyResetOTP() returned the raw OTP value in the response
+ *     body ("otp": "123456"). The frontend then forwarded it back in the reset
+ *     request. This made the OTP visible in browser history, network logs, etc.
+ *
+ * FIX:
+ *   - After OTP verification, issue a short-lived server-side "reset token"
+ *     (a UUID stored in resetStorage with a 10-minute TTL).
+ *   - The client sends this reset token instead of the OTP in the reset step.
+ *   - resetPassword() validates the token server-side and never re-accepts the OTP.
+ *   - The OTP itself is never returned in any response after the verify step.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ForgotPasswordService {
 
     private final UserRegistrationRepository userRepository;
-    private final EmailOTPService emailOTPService;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final EmailOTPService            emailOTPService;
+    private final BCryptPasswordEncoder      passwordEncoder;
 
-    // In-memory storage for password reset tracking
-    private static final Map<String, ResetData> resetStorage = new ConcurrentHashMap<>();
-    private static final int OTP_EXPIRY_MINUTES = 15;
-    private static final int MAX_TEMP_ENTRIES = 10_000;
+    /** Key = email, Value = ResetData (tracks OTP request state) */
+    private static final Map<String, ResetData> otpStorage   = new ConcurrentHashMap<>();
+    /** Key = resetToken (UUID), Value = email (issued after OTP verified) */
+    private static final Map<String, String>    tokenStorage = new ConcurrentHashMap<>();
+
+    private static final int OTP_EXPIRY_MINUTES   = 15;
+    private static final int TOKEN_EXPIRY_MINUTES = 10;
+    private static final int MAX_OTP_ATTEMPTS     = 3;
+    private static final int MAX_STORE_SIZE       = 10_000;
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 1 — Send OTP for password reset
+    // ─────────────────────────────────────────────────────────────
+
+    public Map<String, Object> sendPasswordResetOTP(String email) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (!StringUtils.hasText(email)) return error("Email is required");
+
+            email = email.trim().toLowerCase();
+            log.info("📧 Password reset requested for: {}", email);
+
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isEmpty()) {
+                // Don't reveal whether email exists — prevents user enumeration
+                response.put("success", true);
+                response.put("message", "If an account exists with this email, you will receive an OTP.");
+                return response;
+            }
+
+            User user = userOpt.get();
+
+            if (!Boolean.TRUE.equals(user.getIsEmailVerified())) {
+                return error("Please verify your email first before resetting your password.");
+            }
+
+            // Clear any existing state for this email
+            otpStorage.remove(email);
+            tokenStorage.values().remove(email); // in case an old token exists
+
+            Map<String, Object> otpResult = emailOTPService.generateAndSendOTP(email);
+            if (!Boolean.TRUE.equals(otpResult.get("success"))) {
+                return error(otpResult.getOrDefault("message", "Failed to send OTP").toString());
+            }
+
+            otpStorage.put(email, new ResetData(
+                    LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
+
+            evictExpired();
+
+            log.info("✅ Password reset OTP sent to: {}", email);
+            response.put("success", true);
+            response.put("message", "OTP sent to your email. Valid for " + OTP_EXPIRY_MINUTES + " minutes.");
+            response.put("email", email);
+
+        } catch (Exception e) {
+            log.error("❌ sendPasswordResetOTP: {}", e.getMessage(), e);
+            return error("Failed to process request. Please try again.");
+        }
+        return response;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 2 — Verify OTP → issue a server-side reset token
+    // ─────────────────────────────────────────────────────────────
+
+    public Map<String, Object> verifyResetOTP(String email, String otp) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (!StringUtils.hasText(email) || !StringUtils.hasText(otp))
+                return error("Email and OTP are required");
+
+            email = email.trim().toLowerCase();
+            log.info("🔐 Password reset OTP verify for: {}", email);
+
+            ResetData data = otpStorage.get(email);
+            if (data == null)
+                return error("No OTP request found. Please request a new OTP.");
+            if (data.isExpired()) {
+                otpStorage.remove(email);
+                return error("OTP has expired. Please request a new one.");
+            }
+            if (data.isLocked()) {
+                otpStorage.remove(email);
+                return error("Too many failed attempts. Please request a new OTP.");
+            }
+
+            Map<String, Object> otpResult = emailOTPService.verifyOTP(email, otp);
+            if (!Boolean.TRUE.equals(otpResult.get("success"))) {
+                data.incrementAttempts();
+                otpStorage.put(email, data);
+                int left = MAX_OTP_ATTEMPTS - data.getAttempts();
+                log.warn("Invalid OTP for {}, attempts left: {}", email, left);
+                return error(left > 0
+                        ? "Invalid OTP. " + left + " attempt" + (left == 1 ? "" : "s") + " remaining."
+                        : "No attempts remaining. Please request a new OTP.");
+            }
+
+            // OTP verified — issue a short-lived server-side reset token
+            otpStorage.remove(email);
+            String resetToken = UUID.randomUUID().toString();
+            tokenStorage.put(resetToken, email + "|" +
+                    LocalDateTime.now().plusMinutes(TOKEN_EXPIRY_MINUTES));
+
+            log.info("✅ OTP verified for: {} — reset token issued", email);
+            response.put("success", true);
+            response.put("message", "OTP verified. You may now set a new password.");
+            response.put("email", email);
+            response.put("resetToken", resetToken); // short-lived UUID, NOT the OTP
+
+        } catch (Exception e) {
+            log.error("❌ verifyResetOTP: {}", e.getMessage(), e);
+            return error("Verification failed. Please try again.");
+        }
+        return response;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 3 — Reset password using the server-side token
+    // ─────────────────────────────────────────────────────────────
+
+    @Transactional
+    public Map<String, Object> resetPassword(String email,
+                                              String resetToken,
+                                              String newPassword,
+                                              String confirmPassword) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (!StringUtils.hasText(email) || !StringUtils.hasText(resetToken))
+                return error("Email and reset token are required");
+
+            email = email.trim().toLowerCase();
+            log.info("🔐 Password reset for: {}", email);
+
+            if (!StringUtils.hasText(newPassword) || !newPassword.equals(confirmPassword))
+                return error("Passwords do not match");
+
+            // Validate password strength
+            String strongPwd = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
+            if (!newPassword.matches(strongPwd))
+                return error("Password must be 8+ characters with uppercase, lowercase, number, and special character");
+
+            // Validate the server-side reset token
+            String tokenEntry = tokenStorage.get(resetToken);
+            if (tokenEntry == null)
+                return error("Invalid or expired reset token. Please start over.");
+
+            String[] parts = tokenEntry.split("\\|");
+            if (parts.length != 2)
+                return error("Malformed reset token. Please start over.");
+
+            String tokenEmail  = parts[0];
+            LocalDateTime expiry = LocalDateTime.parse(parts[1]);
+
+            if (!tokenEmail.equals(email))
+                return error("Token does not match the provided email.");
+            if (LocalDateTime.now().isAfter(expiry)) {
+                tokenStorage.remove(resetToken);
+                return error("Reset token has expired. Please start over.");
+            }
+
+            // Find and update user
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isEmpty()) return error("User not found");
+
+            User user = userOpt.get();
+            if (!Boolean.TRUE.equals(user.getIsEmailVerified()))
+                return error("Please verify your email before resetting your password.");
+
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setFailedAttempts(0);
+            user.setLockTime(null);
+            userRepository.save(user);
+
+            // Consume the token — single-use
+            tokenStorage.remove(resetToken);
+
+            log.info("✅ Password reset successful for: {}", email);
+            response.put("success", true);
+            response.put("message", "Password reset successfully. You can now log in with your new password.");
+            response.put("redirectTo", "/api/users/login-form");
+
+        } catch (Exception e) {
+            log.error("❌ resetPassword: {}", e.getMessage(), e);
+            return error("Failed to reset password. Please try again.");
+        }
+        return response;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Resend OTP
+    // ─────────────────────────────────────────────────────────────
+
+    public Map<String, Object> resendPasswordResetOTP(String email) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (!StringUtils.hasText(email)) return error("Email is required");
+            email = email.trim().toLowerCase();
+            log.info("🔄 Resend password reset OTP for: {}", email);
+
+            // Silently succeed for non-existent emails (anti-enumeration)
+            if (!userRepository.existsByEmail(email)) {
+                response.put("success", true);
+                response.put("message", "If an account exists with this email, you will receive an OTP.");
+                return response;
+            }
+
+            otpStorage.remove(email);
+
+            Map<String, Object> otpResult = emailOTPService.resendOTP(email);
+            if (Boolean.TRUE.equals(otpResult.get("success"))) {
+                otpStorage.put(email, new ResetData(
+                        LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
+                evictExpired();
+                log.info("✅ Resent password reset OTP to: {}", email);
+                response.put("success", true);
+                response.put("message", "New OTP sent. Valid for " + OTP_EXPIRY_MINUTES + " minutes.");
+            } else {
+                return error(otpResult.getOrDefault("message", "Failed to resend OTP").toString());
+            }
+
+        } catch (Exception e) {
+            log.error("❌ resendPasswordResetOTP: {}", e.getMessage(), e);
+            return error("Failed to resend OTP. Please try again.");
+        }
+        return response;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────
+
+    private void evictExpired() {
+        try {
+            otpStorage.entrySet().removeIf(e -> e.getValue().isExpired());
+            tokenStorage.entrySet().removeIf(e -> {
+                String[] p = e.getValue().split("\\|");
+                return p.length != 2 || LocalDateTime.now().isAfter(LocalDateTime.parse(p[1]));
+            });
+            if (otpStorage.size() > MAX_STORE_SIZE) {
+                log.warn("⚠️ otpStorage exceeded limit — clearing");
+                otpStorage.clear();
+            }
+            if (tokenStorage.size() > MAX_STORE_SIZE) {
+                log.warn("⚠️ tokenStorage exceeded limit — clearing");
+                tokenStorage.clear();
+            }
+        } catch (Exception e) {
+            log.error("evictExpired error: {}", e.getMessage());
+        }
+    }
+
+    private Map<String, Object> error(String msg) {
+        Map<String, Object> r = new HashMap<>();
+        r.put("success", false);
+        r.put("message", msg);
+        return r;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Internal data class
+    // ─────────────────────────────────────────────────────────────
 
     @lombok.Data
     @lombok.AllArgsConstructor
     private static class ResetData {
         private LocalDateTime expiry;
-        private int attempts;
-        
-        boolean isExpired() {
-            return LocalDateTime.now().isAfter(expiry);
-        }
-        
-        boolean isLocked() {
-            return attempts >= 3;
-        }
-    }
+        private int           attempts;
 
-    // ─────────────────────────────────────────────────────────────
-    // STEP 1: Send OTP for password reset
-    // ─────────────────────────────────────────────────────────────
-    
-    public Map<String, Object> sendPasswordResetOTP(String email) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            if (!StringUtils.hasText(email)) {
-                return error("Email is required");
-            }
-            
-            email = email.trim().toLowerCase();
-            log.info("📧 Password reset requested for: {}", email);
-            
-            // Check if user exists
-            Optional<User> userOpt = userRepository.findByEmail(email);
-            if (userOpt.isEmpty()) {
-                log.warn("Password reset attempted for non-existent email: {}", email);
-                response.put("success", true);
-                response.put("message", "If an account exists with this email, you will receive an OTP.");
-                return response;
-            }
-            
-            User user = userOpt.get();
-            
-            // Check if email is verified
-            if (!Boolean.TRUE.equals(user.getIsEmailVerified())) {
-                log.warn("Password reset attempted for unverified email: {}", email);
-                response.put("success", false);
-                response.put("message", "Please verify your email first. Check your inbox for verification link.");
-                return response;
-            }
-            
-            // Remove any existing tracking
-            resetStorage.remove(email);
-            
-            // Generate and send OTP using EmailOTPService (this stores the OTP)
-            Map<String, Object> otpResult = emailOTPService.generateAndSendOTP(email);
-            
-            if (Boolean.TRUE.equals(otpResult.get("success"))) {
-                // Store tracking data for this reset attempt (without storing OTP again)
-                resetStorage.put(email, new ResetData(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
-                
-                evictExpiredEntries();
-                
-                log.info("✅ Password reset OTP sent to: {}", email);
-                response.put("success", true);
-                response.put("message", "OTP sent to your email. Valid for " + OTP_EXPIRY_MINUTES + " minutes.");
-                response.put("email", email);
-            } else {
-                response.put("success", false);
-                response.put("message", otpResult.getOrDefault("message", "Failed to send OTP"));
-            }
-            
-        } catch (Exception e) {
-            log.error("❌ sendPasswordResetOTP error: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Failed to process request. Please try again.");
-        }
-        
-        return response;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // STEP 2: Verify OTP for password reset (uses EmailOTPService)
-    // ─────────────────────────────────────────────────────────────
-    
-    public Map<String, Object> verifyResetOTP(String email, String otp) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            if (!StringUtils.hasText(email) || !StringUtils.hasText(otp)) {
-                return error("Email and OTP are required");
-            }
-            
-            email = email.trim().toLowerCase();
-            log.info("🔐 Password reset OTP verification for: {}", email);
-            
-            // Check tracking data
-            ResetData data = resetStorage.get(email);
-            if (data == null) {
-                return error("No OTP request found. Please request a new OTP.");
-            }
-            
-            if (data.isExpired()) {
-                resetStorage.remove(email);
-                return error("OTP has expired. Please request a new one.");
-            }
-            
-            if (data.isLocked()) {
-                resetStorage.remove(email);
-                return error("Too many failed attempts. Please request a new OTP.");
-            }
-            
-            // Verify OTP using EmailOTPService (this actually checks the OTP)
-            // IMPORTANT: This will consume the OTP from EmailOTPService storage
-            // We need to modify EmailOTPService to have a verify without consume method
-            // For now, we'll use the existing verify which consumes the OTP
-            Map<String, Object> otpResult = emailOTPService.verifyOTP(email, otp);
-            
-            if (!Boolean.TRUE.equals(otpResult.get("success"))) {
-                // Increment failed attempts
-                data.setAttempts(data.getAttempts() + 1);
-                resetStorage.put(email, data);
-                int left = 3 - data.getAttempts();
-                log.warn("Invalid OTP for email: {}, attempts left: {}", email, left);
-                return error(left > 0
-                    ? "Invalid OTP. " + left + " attempt" + (left == 1 ? "" : "s") + " remaining."
-                    : "No attempts remaining. Please request a new OTP.");
-            }
-            
-            // OTP is valid - keep tracking data but note that OTP was consumed
-            // Store a flag that OTP was verified
-            // We'll need to store the OTP value temporarily for reset
-            response.put("success", true);
-            response.put("message", "OTP verified successfully");
-            response.put("email", email);
-            response.put("otp", otp); // Store OTP to use in reset
-            
-        } catch (Exception e) {
-            log.error("❌ verifyResetOTP error: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Verification failed. Please try again.");
-        }
-        
-        return response;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // STEP 3: Reset password
-    // ─────────────────────────────────────────────────────────────
-    
-    @Transactional
-    public Map<String, Object> resetPassword(String email, String otp, String newPassword, String confirmPassword) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            if (!StringUtils.hasText(email) || !StringUtils.hasText(otp)) {
-                return error("Email and OTP are required");
-            }
-            
-            email = email.trim().toLowerCase();
-            log.info("🔐 Password reset for: {}", email);
-            
-            // Validate password match
-            if (!newPassword.equals(confirmPassword)) {
-                return error("Passwords do not match");
-            }
-            
-            // Validate password strength
-            String passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
-            if (!newPassword.matches(passwordRegex)) {
-                return error("Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character");
-            }
-            
-            // Find user
-            Optional<User> userOpt = userRepository.findByEmail(email);
-            if (userOpt.isEmpty()) {
-                return error("User not found");
-            }
-            
-            User user = userOpt.get();
-            
-            // Check if email is verified
-            if (!Boolean.TRUE.equals(user.getIsEmailVerified())) {
-                return error("Please verify your email before resetting password.");
-            }
-            
-            // Since OTP was already verified and consumed in verifyResetOTP,
-            // we need to store the OTP temporarily. For now, we'll assume
-            // the frontend passes the verified OTP and we'll trust it.
-            // To make this secure, we should store a verification flag.
-            
-            // Update password
-            user.setPassword(passwordEncoder.encode(newPassword));
-            user.setFailedAttempts(0);
-            user.setLockTime(null);
-            userRepository.save(user);
-            
-            // Clear tracking storage
-            resetStorage.remove(email);
-            
-            log.info("✅ Password reset successful for: {}", email);
-            
-            response.put("success", true);
-            response.put("message", "Password reset successfully. You can now log in with your new password.");
-            response.put("redirectTo", "/api/users/login-form");
-            
-        } catch (Exception e) {
-            log.error("❌ resetPassword error: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Failed to reset password. Please try again.");
-        }
-        
-        return response;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // Resend OTP for password reset
-    // ─────────────────────────────────────────────────────────────
-    
-    public Map<String, Object> resendPasswordResetOTP(String email) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            if (!StringUtils.hasText(email)) {
-                return error("Email is required");
-            }
-            
-            email = email.trim().toLowerCase();
-            log.info("🔄 Resend password reset OTP for: {}", email);
-            
-            // Check if user exists
-            Optional<User> userOpt = userRepository.findByEmail(email);
-            if (userOpt.isEmpty()) {
-                response.put("success", true);
-                response.put("message", "If an account exists with this email, you will receive an OTP.");
-                return response;
-            }
-            
-            // Remove existing tracking
-            resetStorage.remove(email);
-            
-            // Resend OTP using EmailOTPService
-            Map<String, Object> otpResult = emailOTPService.resendOTP(email);
-            
-            if (Boolean.TRUE.equals(otpResult.get("success"))) {
-                resetStorage.put(email, new ResetData(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES), 0));
-                evictExpiredEntries();
-                
-                log.info("✅ New password reset OTP sent to: {}", email);
-                response.put("success", true);
-                response.put("message", "New OTP sent to your email. Valid for " + OTP_EXPIRY_MINUTES + " minutes.");
-            } else {
-                response.put("success", false);
-                response.put("message", otpResult.getOrDefault("message", "Failed to resend OTP"));
-            }
-            
-        } catch (Exception e) {
-            log.error("❌ resendPasswordResetOTP error: {}", e.getMessage(), e);
-            response.put("success", false);
-            response.put("message", "Failed to resend OTP. Please try again.");
-        }
-        
-        return response;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // Private helpers
-    // ─────────────────────────────────────────────────────────────
-    
-    private void evictExpiredEntries() {
-        try {
-            resetStorage.entrySet().removeIf(e -> e.getValue().isExpired());
-            if (resetStorage.size() > MAX_TEMP_ENTRIES) {
-                log.warn("⚠️ resetStorage exceeded {} entries — clearing all", MAX_TEMP_ENTRIES);
-                resetStorage.clear();
-            }
-        } catch (Exception e) {
-            log.error("evictExpiredEntries error: {}", e.getMessage());
-        }
-    }
-    
-    private Map<String, Object> error(String message) {
-        Map<String, Object> r = new HashMap<>();
-        r.put("success", false);
-        r.put("message", message);
-        return r;
+        boolean isExpired() { return LocalDateTime.now().isAfter(expiry); }
+        boolean isLocked()  { return attempts >= MAX_OTP_ATTEMPTS; }
+        void    incrementAttempts() { attempts++; }
     }
 }

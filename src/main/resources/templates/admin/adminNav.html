@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <!--
-  BidPilots — Sidebar Nav Fragment
-  Place at: src/main/resources/templates/fragments/nav.html
-  Include:  <div th:replace="~{fragments/nav :: sidebar}"></div>
+  BidPilots — Admin Sidebar Nav Fragment
+  Place at: src/main/resources/templates/admin/adminNav.html
+  Include:  <div th:replace="~{admin/adminNav :: sidebar}"></div>
 -->
 
 <body>
@@ -15,12 +15,12 @@
 				--nav-border: rgba(255, 255, 255, 0.07);
 				--nav-surface: rgba(255, 255, 255, 0.04);
 				--nav-hover: rgba(255, 255, 255, 0.06);
-				--nav-active-bg: rgba(79, 142, 247, 0.14);
-				--nav-active-bd: rgba(79, 142, 247, 0.4);
+				--nav-active-bg: rgba(245, 166, 35, 0.14);
+				--nav-active-bd: rgba(245, 166, 35, 0.4);
 				--nav-text: #94a3b8;
 				--nav-hi: #f1f5f9;
-				--nav-accent: #4f8ef7;
-				--nav-grad: linear-gradient(135deg, #4f8ef7, #7c5cfc);
+				--nav-accent: #f5a623;
+				--nav-grad: linear-gradient(135deg, #f5a623, #f0526a);
 				--nav-success: #22c989;
 				--nav-warn: #f5a623;
 				--nav-danger: #f0526a;
@@ -50,6 +50,31 @@
 
 			.bp-nav.collapsed {
 				width: var(--nav-coll);
+			}
+
+			/* ══ Admin Badge on Logo ══════════════════════════════════════════ */
+			.bp-admin-badge {
+				display: inline-flex;
+				align-items: center;
+				background: rgba(245, 166, 35, 0.18);
+				border: 1px solid rgba(245, 166, 35, 0.35);
+				color: var(--nav-accent);
+				font-size: 9px;
+				font-weight: 800;
+				letter-spacing: .08em;
+				text-transform: uppercase;
+				padding: 2px 6px;
+				border-radius: 5px;
+				margin-left: 4px;
+				white-space: nowrap;
+				opacity: 1;
+				transition: opacity var(--nav-t);
+				flex-shrink: 0;
+			}
+
+			.bp-nav.collapsed .bp-admin-badge {
+				opacity: 0;
+				pointer-events: none;
 			}
 
 			/* ══ Logo ════════════════════════════════════════════════════════ */
@@ -328,16 +353,11 @@
 
 			/* ══ Settings Icon Animation ══ */
 			@keyframes spin {
-				0% {
-					transform: rotate(0deg);
-				}
-
-				100% {
-					transform: rotate(360deg);
-				}
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
 			}
 
-			.bp-item#nav-settings:hover .bp-ico svg {
+			.bp-item#nav-admin-settings:hover .bp-ico svg {
 				animation: spin 2s linear infinite;
 			}
 
@@ -349,7 +369,7 @@
 				width: 26px;
 				height: 26px;
 				background: #1e2a3a;
-				border: 1.5px solid rgba(79, 142, 247, 0.35);
+				border: 1.5px solid rgba(245, 166, 35, 0.35);
 				border-radius: 50%;
 				display: flex;
 				align-items: center;
@@ -357,13 +377,13 @@
 				cursor: pointer;
 				z-index: 201;
 				transition: background var(--nav-t), border-color var(--nav-t), box-shadow var(--nav-t);
-				box-shadow: 0 2px 12px rgba(0, 0, 0, .7), 0 0 0 1px rgba(79, 142, 247, 0.1);
+				box-shadow: 0 2px 12px rgba(0, 0, 0, .7), 0 0 0 1px rgba(245, 166, 35, 0.1);
 			}
 
 			.bp-toggle:hover {
 				background: #2a3a55;
-				border-color: rgba(79, 142, 247, 0.65);
-				box-shadow: 0 2px 16px rgba(79, 142, 247, 0.25), 0 0 0 2px rgba(79, 142, 247, 0.15);
+				border-color: rgba(245, 166, 35, 0.65);
+				box-shadow: 0 2px 16px rgba(245, 166, 35, 0.25), 0 0 0 2px rgba(245, 166, 35, 0.15);
 			}
 
 			.bp-toggle svg {
@@ -374,7 +394,7 @@
 			}
 
 			.bp-toggle:hover svg {
-				color: #4f8ef7;
+				color: var(--nav-accent);
 			}
 
 			.bp-nav.collapsed .bp-toggle svg {
@@ -446,7 +466,7 @@
 
 			.bp-ham:hover {
 				background: var(--nav-hover);
-				border-color: rgba(79, 142, 247, 0.3);
+				border-color: rgba(245, 166, 35, 0.3);
 			}
 
 			.bp-ham svg {
@@ -471,9 +491,7 @@
 
 			/* ══ Tablet ══════════════════════════════════════════════════════ */
 			@media(max-width:1024px) and (min-width:769px) {
-				:root {
-					--nav-w: 200px;
-				}
+				:root { --nav-w: 200px; }
 			}
 
 			/* ══ Mobile ══════════════════════════════════════════════════════ */
@@ -490,35 +508,21 @@
 					box-shadow: 8px 0 48px rgba(0, 0, 0, .7);
 				}
 
-				.bp-toggle {
-					display: none !important;
-				}
+				.bp-toggle { display: none !important; }
 
-				.bp-ham {
-					display: flex;
-				}
+				.bp-ham { display: flex; }
 
-				.bp-page-content {
-					margin-left: 0 !important;
-				}
+				.bp-page-content { margin-left: 0 !important; }
 
-				.bp-item-lbl {
-					font-size: 13px;
-				}
+				.bp-item-lbl { font-size: 13px; }
 
-				.bp-logo {
-					padding: 16px 14px 14px;
-				}
+				.bp-logo { padding: 16px 14px 14px; }
 
-				.bp-nav.collapsed .bp-item[data-tip]::after {
-					display: none;
-				}
+				.bp-nav.collapsed .bp-item[data-tip]::after { display: none; }
 			}
 
 			@media(max-width:360px) {
-				.bp-nav {
-					max-width: calc(100vw - 40px) !important;
-				}
+				.bp-nav { max-width: calc(100vw - 40px) !important; }
 			}
 		</style>
 
@@ -539,16 +543,20 @@
 				</svg>
 			</button>
 
-			<a href="/api/user/dashboard" class="bp-logo">
+			<a href="/api/admin/dashboard" class="bp-logo">
 				<div class="bp-logo-mark">
 					<img src="/images/white-logo.svg" alt="BidPilots">
 				</div>
 				<span class="bp-logo-text">BidPilots</span>
+				<span class="bp-admin-badge">Admin</span>
 			</a>
 
 			<div class="bp-nav-body">
-				<div class="bp-sec">Main</div>
-				<a href="/api/user/dashboard" class="bp-item" id="nav-dashboard" data-tip="Dashboard">
+
+				<!-- ══ OVERVIEW ══════════════════════════════════════════════ -->
+				<div class="bp-sec">Overview</div>
+
+				<a href="/api/admin/dashboard" class="bp-item" id="nav-admin-dashboard" data-tip="Dashboard">
 					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="currentColor">
 							<path d="M14 10V22H4a2 2 0 0 1-2-2V10z" />
 							<path d="M22 10V20a2 2 0 0 1-2 2h-4V10z" />
@@ -556,7 +564,59 @@
 						</svg></span>
 					<span class="bp-item-lbl">Dashboard</span>
 				</a>
-				<a href="/api/user/tenders" class="bp-item" id="nav-bids" data-tip="My Bids">
+
+				<a href="/api/admin/analytics" class="bp-item" id="nav-admin-analytics" data-tip="Analytics">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<line x1="18" y1="20" x2="18" y2="10" />
+							<line x1="12" y1="20" x2="12" y2="4" />
+							<line x1="6" y1="20" x2="6" y2="14" />
+							<line x1="2" y1="20" x2="22" y2="20" />
+						</svg></span>
+					<span class="bp-item-lbl">Analytics</span>
+				</a>
+
+				<!-- ══ USER MANAGEMENT ════════════════════════════════════════ -->
+				<div class="bp-div"></div>
+				<div class="bp-sec">Users</div>
+
+				<a href="/api/admin/users" class="bp-item" id="nav-admin-users" data-tip="All Users">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+							<circle cx="9" cy="7" r="4" />
+							<path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+							<path d="M16 3.13a4 4 0 0 1 0 7.75" />
+						</svg></span>
+					<span class="bp-item-lbl">All Users</span>
+				</a>
+
+				<a href="/api/admin/users/new" class="bp-item" id="nav-admin-users-new" data-tip="Add User">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+							<circle cx="8.5" cy="7" r="4" />
+							<line x1="20" y1="8" x2="20" y2="14" />
+							<line x1="23" y1="11" x2="17" y2="11" />
+						</svg></span>
+					<span class="bp-item-lbl">Add User</span>
+				</a>
+
+				<a href="/api/admin/users/roles" class="bp-item" id="nav-admin-roles" data-tip="Roles">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="8" r="4" />
+							<path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+							<polyline points="15 11 17 13 21 9" />
+						</svg></span>
+					<span class="bp-item-lbl">Roles</span>
+				</a>
+
+				<!-- ══ TENDERS / BIDS ═════════════════════════════════════════ -->
+				<div class="bp-div"></div>
+				<div class="bp-sec">Tenders</div>
+
+				<a href="/api/admin/tenders" class="bp-item" id="nav-admin-tenders" data-tip="All Tenders">
 					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
 							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -564,16 +624,95 @@
 							<line x1="16" y1="13" x2="8" y2="13" />
 							<line x1="16" y1="17" x2="8" y2="17" />
 						</svg></span>
-					<span class="bp-item-lbl">My Bids</span>
+					<span class="bp-item-lbl">All Tenders</span>
 				</a>
-				<a href="/api/user/filters-page" class="bp-item" id="nav-filters" data-tip="Filters">
+
+				<a href="/api/admin/tenders/sources" class="bp-item" id="nav-admin-sources" data-tip="Data Sources">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<ellipse cx="12" cy="5" rx="9" ry="3" />
+							<path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+							<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+						</svg></span>
+					<span class="bp-item-lbl">Data Sources</span>
+				</a>
+
+				<a href="/api/admin/tenders/categories" class="bp-item" id="nav-admin-categories" data-tip="Categories">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<rect x="3" y="3" width="7" height="7" />
+							<rect x="14" y="3" width="7" height="7" />
+							<rect x="14" y="14" width="7" height="7" />
+							<rect x="3" y="14" width="7" height="7" />
+						</svg></span>
+					<span class="bp-item-lbl">Categories</span>
+				</a>
+
+				<!-- ══ SUBSCRIPTIONS ══════════════════════════════════════════ -->
+				<div class="bp-div"></div>
+				<div class="bp-sec">Subscriptions</div>
+
+				<a href="/api/admin/subscriptions" class="bp-item" id="nav-admin-subscriptions" data-tip="Subscriptions">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+							<line x1="1" y1="10" x2="23" y2="10" />
+						</svg></span>
+					<span class="bp-item-lbl">Subscriptions</span>
+				</a>
+
+				<a href="/api/admin/subscriptions/plans" class="bp-item" id="nav-admin-plans" data-tip="Plans">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+						</svg></span>
+					<span class="bp-item-lbl">Plans</span>
+				</a>
+
+				<a href="/api/admin/payments" class="bp-item" id="nav-admin-payments" data-tip="Payments">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<line x1="12" y1="1" x2="12" y2="23" />
+							<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+						</svg></span>
+					<span class="bp-item-lbl">Payments</span>
+				</a>
+
+				<!-- ══ FILTERS & CONFIG ═══════════════════════════════════════ -->
+				<div class="bp-div"></div>
+				<div class="bp-sec">Configuration</div>
+
+				<a href="/api/admin/filters" class="bp-item" id="nav-admin-filters" data-tip="Global Filters">
 					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
 							stroke-linecap="round" stroke-linejoin="round">
 							<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
 						</svg></span>
-					<span class="bp-item-lbl">Filters</span>
+					<span class="bp-item-lbl">Global Filters</span>
 				</a>
-				<a href="/api/user/all-filters" class="bp-item" id="nav-all-filters" data-tip="All Filters">
+
+				<a href="/api/admin/notifications" class="bp-item" id="nav-admin-notifications" data-tip="Notifications">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+							<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+						</svg></span>
+					<span class="bp-item-lbl">Notifications</span>
+				</a>
+
+				<a href="/api/admin/email-templates" class="bp-item" id="nav-admin-email-templates" data-tip="Email Templates">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+							<polyline points="22,6 12,13 2,6" />
+						</svg></span>
+					<span class="bp-item-lbl">Email Templates</span>
+				</a>
+
+				<!-- ══ SYSTEM ══════════════════════════════════════════════════ -->
+				<div class="bp-div"></div>
+				<div class="bp-sec">System</div>
+
+				<a href="/api/admin/logs" class="bp-item" id="nav-admin-logs" data-tip="Audit Logs">
 					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
 							stroke-linecap="round" stroke-linejoin="round">
 							<line x1="8" y1="6" x2="21" y2="6" />
@@ -583,43 +722,21 @@
 							<line x1="3" y1="12" x2="3.01" y2="12" />
 							<line x1="3" y1="18" x2="3.01" y2="18" />
 						</svg></span>
-					<span class="bp-item-lbl">All Filters</span>
+					<span class="bp-item-lbl">Audit Logs</span>
+				</a>
+
+				<a href="/api/admin/settings" class="bp-item" id="nav-admin-settings" data-tip="Settings">
+					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="3" />
+							<path
+								d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+						</svg></span>
+					<span class="bp-item-lbl">Settings</span>
 				</a>
 
 				<div class="bp-div"></div>
-				<div class="bp-sec">Account</div>
-
-				<a href="/subscription/plans" class="bp-item" id="nav-subscription" data-tip="Subscription">
-					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-							stroke-linecap="round" stroke-linejoin="round">
-							<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-							<line x1="1" y1="10" x2="23" y2="10" />
-						</svg></span>
-					<span class="bp-item-lbl">Subscription</span>
-				</a>
-
-				<!-- UPDATED: Profile link with correct href -->
-				<a href="/api/user/profile" class="bp-item" id="nav-profile" data-tip="Profile">
-					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-							stroke-linecap="round" stroke-linejoin="round">
-							<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-							<circle cx="12" cy="7" r="4" />
-						</svg></span>
-					<span class="bp-item-lbl">Profile</span>
-				</a>
-
-				<!--				<a href="#" class="bp-item" id="nav-settings" data-tip="Settings">-->
-				<!--					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"-->
-				<!--							stroke-linecap="round" stroke-linejoin="round">-->
-				<!--							<circle cx="12" cy="12" r="3" />-->
-				<!--							<path-->
-				<!--								d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />-->
-				<!--						</svg></span>-->
-				<!--					<span class="bp-item-lbl">Settings</span>-->
-				<!--				</a>-->
-
-				<div class="bp-div"></div>
-				<button class="bp-item danger" data-tip="Logout" onclick="bpLogout()">
+				<button class="bp-item danger" data-tip="Logout" onclick="bpAdminLogout()">
 					<span class="bp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
 							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -632,11 +749,11 @@
 
 			<div class="bp-footer">
 				<div class="bp-ucard">
-					<div class="bp-uavatar" id="bpAvatar">BP</div>
-					<div class="bp-uinfo" id="bpUInfo">
-						<div id="bpNameContainer" class="bp-uname-multi">
-							<span class="bp-name-first" id="bpFirstName">Loading...</span>
-							<span class="bp-name-last" id="bpLastName"></span>
+					<div class="bp-uavatar" id="bpAdminAvatar">AD</div>
+					<div class="bp-uinfo" id="bpAdminUInfo">
+						<div id="bpAdminNameContainer" class="bp-uname-multi">
+							<span class="bp-name-first" id="bpAdminFirstName">Loading...</span>
+							<span class="bp-name-last" id="bpAdminLastName"></span>
 						</div>
 					</div>
 				</div>
@@ -645,89 +762,98 @@
 
 		<script>
 			(function () {
-				var nav = document.getElementById('bpNav'), KEY = 'bp_nav_v3';
-				function isSmall() {return window.innerWidth <= 768;}
-				function syncContent() {var c = document.querySelector('.bp-page-content'); if (c) c.classList.toggle('nav-collapsed', nav.classList.contains('collapsed'));}
-				function init() {if (!isSmall() && localStorage.getItem(KEY) === '1') nav.classList.add('collapsed'); syncContent();}
-				window.bpToggle = function () {if (isSmall()) return; nav.classList.toggle('collapsed'); localStorage.setItem(KEY, nav.classList.contains('collapsed') ? '1' : '0'); syncContent();};
-				window.bpOpen = function () {nav.classList.add('mobile-open'); document.getElementById('bpOverlay').classList.add('show'); document.getElementById('bpHam').style.display = 'none';};
-				window.bpClose = function () {nav.classList.remove('mobile-open'); document.getElementById('bpOverlay').classList.remove('show'); if (isSmall()) document.getElementById('bpHam').style.display = 'flex';};
+				var nav = document.getElementById('bpNav'), KEY = 'bp_admin_nav_v1';
+				function isSmall() { return window.innerWidth <= 768; }
+				function syncContent() { var c = document.querySelector('.bp-page-content'); if (c) c.classList.toggle('nav-collapsed', nav.classList.contains('collapsed')); }
+				function init() { if (!isSmall() && localStorage.getItem(KEY) === '1') nav.classList.add('collapsed'); syncContent(); }
+				window.bpToggle = function () { if (isSmall()) return; nav.classList.toggle('collapsed'); localStorage.setItem(KEY, nav.classList.contains('collapsed') ? '1' : '0'); syncContent(); };
+				window.bpOpen = function () { nav.classList.add('mobile-open'); document.getElementById('bpOverlay').classList.add('show'); document.getElementById('bpHam').style.display = 'none'; };
+				window.bpClose = function () { nav.classList.remove('mobile-open'); document.getElementById('bpOverlay').classList.remove('show'); if (isSmall()) document.getElementById('bpHam').style.display = 'flex'; };
 
 				/* Active link detection */
 				var p = window.location.pathname;
 				var routes = {
-					'nav-dashboard': ['/api/user/dashboard', '/api/user/my-dashboard'],
-					'nav-bids': ['/api/user/tenders'],
-					'nav-filters': ['/api/user/filters-page'],
-					'nav-all-filters': ['/api/user/all-filters'],
-					'nav-subscription': ['/subscription/plans'],
-					'nav-profile': ['/api/user/profile'],
-					'nav-settings': ['/api/user/settings']
+					'nav-admin-dashboard':       ['/api/admin/dashboard'],
+					'nav-admin-analytics':       ['/api/admin/analytics'],
+					'nav-admin-users':           ['/api/admin/users'],
+					'nav-admin-users-new':       ['/api/admin/users/new'],
+					'nav-admin-roles':           ['/api/admin/users/roles'],
+					'nav-admin-tenders':         ['/api/admin/tenders'],
+					'nav-admin-sources':         ['/api/admin/tenders/sources'],
+					'nav-admin-categories':      ['/api/admin/tenders/categories'],
+					'nav-admin-subscriptions':   ['/api/admin/subscriptions'],
+					'nav-admin-plans':           ['/api/admin/subscriptions/plans'],
+					'nav-admin-payments':        ['/api/admin/payments'],
+					'nav-admin-filters':         ['/api/admin/filters'],
+					'nav-admin-notifications':   ['/api/admin/notifications'],
+					'nav-admin-email-templates': ['/api/admin/email-templates'],
+					'nav-admin-logs':            ['/api/admin/logs'],
+					'nav-admin-settings':        ['/api/admin/settings']
 				};
-				Object.keys(routes).forEach(function (id) {var el = document.getElementById(id); if (!el) return; if (routes[id].some(function (r) {return p === r || p.startsWith(r);})) el.classList.add('active');});
+				Object.keys(routes).forEach(function (id) {
+					var el = document.getElementById(id);
+					if (!el) return;
+					if (routes[id].some(function (r) { return p === r || p.startsWith(r); })) el.classList.add('active');
+				});
 				init();
 
-				/* User info with split name */
+				/* Admin user info */
 				function splitAndDisplayName(fullName) {
-					var firstNameSpan = document.getElementById('bpFirstName');
-					var lastNameSpan = document.getElementById('bpLastName');
-
+					var firstNameSpan = document.getElementById('bpAdminFirstName');
+					var lastNameSpan = document.getElementById('bpAdminLastName');
 					if (!fullName || fullName === '—' || fullName === 'Loading...') {
-						firstNameSpan.textContent = 'User';
+						firstNameSpan.textContent = 'Admin';
 						lastNameSpan.textContent = '';
 						return;
 					}
-
 					var nameParts = fullName.trim().split(/\s+/);
 					if (nameParts.length === 1) {
 						firstNameSpan.textContent = nameParts[0];
 						lastNameSpan.textContent = '';
 					} else {
-						var firstName = nameParts[0];
-						var lastName = nameParts.slice(1).join(' ');
-						firstNameSpan.textContent = firstName;
-						lastNameSpan.textContent = lastName;
+						firstNameSpan.textContent = nameParts[0];
+						lastNameSpan.textContent = nameParts.slice(1).join(' ');
 					}
 				}
 
-				fetch('/api/users/current-user', {credentials: 'include'}).then(function (r) {return r.json();}).then(function (d) {
+				fetch('/api/users/current-user', { credentials: 'include' }).then(function (r) { return r.json(); }).then(function (d) {
 					var u = d.success && d.user ? d.user : null; if (!u) return;
 					var name = u.companyName || u.name || u.email || '—';
-					var firstNameSpan = document.getElementById('bpFirstName');
-					var lastNameSpan = document.getElementById('bpLastName');
+					var firstNameSpan = document.getElementById('bpAdminFirstName');
+					var lastNameSpan = document.getElementById('bpAdminLastName');
 
 					if ((!u.companyName && !u.name) && u.email && u.email !== '—') {
 						var emailParts = u.email.split('@');
-						var emailUser = emailParts[0] || 'User';
-						var emailDomain = emailParts[1] || '';
-						firstNameSpan.textContent = emailUser;
-						lastNameSpan.textContent = emailDomain;
+						firstNameSpan.textContent = emailParts[0] || 'Admin';
+						lastNameSpan.textContent = emailParts[1] || '';
 					} else {
 						splitAndDisplayName(name);
 					}
 
 					// Avatar initials
+					var nameForIni = (u.companyName || u.name || u.email || 'AD').trim();
 					var ini = '';
-					var nameForIni = u.companyName || u.name || u.email || 'BP';
-					var nameTrim = nameForIni.trim();
-					if (nameTrim.includes(' ')) {
-						var parts = nameTrim.split(/\s+/);
-						ini = (parts[0][0] || '') + (parts[1][0] || '');
-						ini = ini.toUpperCase();
+					if (nameForIni.includes(' ')) {
+						var parts = nameForIni.split(/\s+/);
+						ini = ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase();
 					} else {
-						ini = nameTrim.substring(0, 2).toUpperCase();
+						ini = nameForIni.substring(0, 2).toUpperCase();
 					}
-					if (ini.length === 0) ini = (u.email && u.email[0]) ? u.email[0].toUpperCase() : 'BP';
-					document.getElementById('bpAvatar').textContent = ini;
+					if (!ini) ini = (u.email && u.email[0]) ? u.email[0].toUpperCase() : 'AD';
+					document.getElementById('bpAdminAvatar').textContent = ini;
 
-					var nameContainer = document.getElementById('bpNameContainer');
+					var nameContainer = document.getElementById('bpAdminNameContainer');
 					if (nameContainer) nameContainer.setAttribute('title', name);
 				}).catch(function () {
-					document.getElementById('bpFirstName').textContent = 'User';
-					document.getElementById('bpLastName').textContent = '';
+					document.getElementById('bpAdminFirstName').textContent = 'Admin';
+					document.getElementById('bpAdminLastName').textContent = '';
 				});
 
-				window.bpLogout = function () {fetch('/api/users/logout', {method: 'POST', credentials: 'include'}).finally(function () {window.location.href = '/api/users/login-form';});};
+				window.bpAdminLogout = function () {
+					fetch('/api/users/logout', { method: 'POST', credentials: 'include' }).finally(function () {
+						window.location.href = '/api/users/login-form';
+					});
+				};
 
 				/* Click outside to collapse (desktop) */
 				document.addEventListener('click', function (e) {

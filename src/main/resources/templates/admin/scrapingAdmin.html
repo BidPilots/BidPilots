@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Scraping Control — BidPilots Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+    <div th:replace="admin/adminNav :: adminNavStyles"></div>
+
+    <style>
+        .page-wrap { padding-top: var(--nav-h); min-height: 100vh; }
+        .bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .bg-canvas::before {
+            content: ''; position: absolute; width: 700px; height: 700px;
+            top: -200px; right: -150px;
+            background: radial-gradient(circle, rgba(79,142,247,.12) 0%, transparent 70%);
+            animation: pls1 9s ease-in-out infinite alternate;
+        }
+        .bg-canvas::after {
+            content: ''; position: absolute; width: 500px; height: 500px;
+            bottom: 5%; left: -80px;
+            background: radial-gradient(circle, rgba(124,92,252,.09) 0%, transparent 70%);
+            animation: pls2 12s ease-in-out infinite alternate;
+        }
+        .bg-grid {
+            position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(79,142,247,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(79,142,247,.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        @keyframes pls1 { to { transform: translate(30px,50px) scale(1.08); } }
+        @keyframes pls2 { to { transform: translate(-25px,-40px) scale(1.12); } }
+        .content { position: relative; z-index: 1; }
+        .main { max-width: 1280px; margin: 0 auto; padding: 36px 28px 80px; }
+
+        /* Header */
+        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 16px; }
+        .header-left h1 { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+        .header-left p { font-size: 13.5px; color: var(--sub); }
+        .breadcrumb { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+        .breadcrumb a { color: var(--indigo); text-decoration: none; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+            font-family: var(--font); cursor: pointer; border: none;
+            transition: opacity .2s, transform .15s; text-decoration: none;
+        }
+        .btn:hover { opacity: .88; transform: translateY(-1px); }
+        .btn-primary { background: var(--grad); color: #fff; }
+        .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border2); }
+        .btn-danger { background: rgba(240,82,106,0.15); color: var(--danger); border: 1px solid rgba(240,82,106,0.3); }
+        .btn-warning { background: rgba(245,166,35,0.15); color: var(--warning); border: 1px solid rgba(245,166,35,0.3); }
+        .btn-success { background: rgba(34,201,137,.15); color: var(--success); border: 1px solid rgba(34,201,137,.3); }
+        .btn-sm { padding: 7px 14px; font-size: 12.5px; border-radius: 8px; }
+        .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+        /* Spinner inside button */
+        .btn-spinner {
+            width: 15px; height: 15px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+            animation: spin .6s linear infinite; display: none; flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Engine status hero */
+        .engine-hero {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: 20px; padding: 32px; margin-bottom: 24px;
+            display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+        }
+        .engine-visual {
+            width: 90px; height: 90px; border-radius: 50%;
+            background: var(--bg3); border: 3px solid var(--border2);
+            display: flex; align-items: center; justify-content: center;
+            position: relative; flex-shrink: 0;
+        }
+        .engine-visual.running {
+            border-color: var(--indigo);
+            box-shadow: 0 0 24px rgba(79,142,247,.4);
+        }
+        .engine-visual.running::before {
+            content: ''; position: absolute; inset: -6px; border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--indigo);
+            animation: spin 1.2s linear infinite;
+        }
+        .engine-visual.done { border-color: var(--success); box-shadow: 0 0 20px rgba(34,201,137,.3); }
+        .engine-icon { font-size: 36px; }
+        .engine-info { flex: 1; min-width: 200px; }
+        .engine-title { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+        .engine-sub { font-size: 13.5px; color: var(--sub); margin-bottom: 16px; }
+        .engine-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .engine-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+        .engine-meta-item { text-align: center; }
+        .engine-meta-val { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+        .engine-meta-val.indigo { color: var(--indigo); }
+        .engine-meta-val.green  { color: var(--success); }
+        .engine-meta-val.orange { color: var(--warning); }
+        .engine-meta-val.purple { color: var(--purple); }
+        .engine-meta-label { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+        /* Progress card */
+        .section-card {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: var(--radius); overflow: hidden; margin-bottom: 22px;
+        }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap; gap: 12px;
+        }
+        .card-title {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15.5px; font-weight: 700; color: var(--text);
+        }
+        .card-body { padding: 24px; }
+
+        /* Progress bar */
+        .progress-block { margin-bottom: 24px; }
+        .progress-meta {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px;
+        }
+        .progress-label { font-size: 13px; font-weight: 600; color: var(--text); }
+        .progress-pct { font-size: 22px; font-weight: 800; color: var(--indigo); }
+        .progress-bar {
+            height: 12px; background: var(--bg3); border-radius: 99px; overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 99px; background: var(--grad);
+            transition: width .8s cubic-bezier(.4,0,.2,1);
+            position: relative;
+        }
+        .progress-fill::after {
+            content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 60px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.3));
+            animation: shimmer 1.5s linear infinite;
+        }
+        @keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(200%)} }
+        .progress-task { font-size: 12.5px; color: var(--sub); margin-top: 8px; }
+
+        /* Stats grid */
+        .stats-grid-4 {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 16px;
+        }
+        .stat-block {
+            background: var(--bg3); border-radius: 14px; padding: 20px 22px;
+            border: 1px solid var(--border); position: relative; overflow: hidden;
+            transition: transform .2s;
+        }
+        .stat-block:hover { transform: translateY(-2px); }
+        .stat-block::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .stat-block.indigo::before { background: var(--indigo); }
+        .stat-block.green::before  { background: var(--success); }
+        .stat-block.orange::before { background: var(--warning); }
+        .stat-block.purple::before { background: var(--purple); }
+        .stat-block.red::before    { background: var(--danger); }
+        .stat-block-icon { font-size: 22px; margin-bottom: 10px; }
+        .stat-block-val { font-size: 30px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 6px; }
+        .stat-block-label { font-size: 12.5px; color: var(--sub); font-weight: 500; }
+        .stat-block-sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+        /* Log console */
+        .log-console {
+            background: #0b0f1c; border: 1px solid rgba(79,142,247,.2);
+            border-radius: 12px; padding: 16px 20px;
+            font-family: 'Courier New', monospace; font-size: 12.5px; color: #7dd3fc;
+            height: 220px; overflow-y: auto; line-height: 1.8;
+        }
+        .log-console .log-time { color: var(--muted); }
+        .log-console .log-ok   { color: var(--success); }
+        .log-console .log-err  { color: var(--danger); }
+        .log-console .log-warn { color: var(--warning); }
+        .log-console .log-info { color: var(--indigo); }
+
+        /* 3-col layout */
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 22px; }
+        @media (max-width: 1000px) { .three-col { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 640px) { .three-col { grid-template-columns: 1fr; } }
+
+        /* Two-col */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 22px; }
+        @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 700;
+        }
+        .status-badge.running { background: rgba(79,142,247,.15); color: var(--indigo); border: 1px solid rgba(79,142,247,.3); }
+        .status-badge.done    { background: rgba(34,201,137,.15); color: var(--success); border: 1px solid rgba(34,201,137,.3); }
+        .status-badge.idle    { background: rgba(148,163,184,.1); color: var(--sub);    border: 1px solid rgba(148,163,184,.2); }
+        .status-badge.error   { background: rgba(240,82,106,.15); color: var(--danger); border: 1px solid rgba(240,82,106,.3); }
+        .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .dot.pulse { animation: dp 1.4s ease-in-out infinite; }
+        @keyframes dp { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+        /* Danger zone */
+        .danger-zone {
+            background: rgba(240,82,106,.07); border: 1px solid rgba(240,82,106,.3);
+            border-radius: var(--radius); padding: 28px 30px;
+        }
+        .danger-zone-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+        }
+        .danger-zone-header h2 { font-size: 18px; font-weight: 800; color: var(--danger); }
+        .danger-zone-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            background: rgba(240,82,106,.2); color: var(--danger);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .danger-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
+        .danger-item {
+            background: rgba(240,82,106,.05); border: 1px solid rgba(240,82,106,.2);
+            border-radius: 12px; padding: 18px 20px;
+        }
+        .danger-item h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .danger-item p { font-size: 12.5px; color: var(--sub); margin-bottom: 14px; line-height: 1.5; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+            padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 600;
+            display: none; animation: slideUp .3s ease; max-width: 360px;
+        }
+        #toast.success { background: rgba(34,201,137,.2); border: 1px solid rgba(34,201,137,.5); color: var(--success); }
+        #toast.error   { background: rgba(240,82,106,.2); border: 1px solid rgba(240,82,106,.5); color: var(--danger); }
+        #toast.info    { background: rgba(79,142,247,.2); border: 1px solid rgba(79,142,247,.5); color: var(--indigo); }
+        #toast.warning { background: rgba(245,166,35,.2); border: 1px solid rgba(245,166,35,.5); color: var(--warning); }
+        @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+        /* Confirm modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 8000;
+            background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: 20px; padding: 34px; max-width: 440px; width: 92%;
+            animation: modalIn .25s ease;
+        }
+        @keyframes modalIn { from{opacity:0;transform:scale(.93)} to{opacity:1;transform:none} }
+        .modal-icon { font-size: 40px; margin-bottom: 14px; }
+        .modal h3 { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+        .modal p { font-size: 14px; color: var(--sub); margin-bottom: 8px; line-height: 1.6; }
+        .modal-warning { font-size: 13px; color: var(--danger); font-weight: 600; margin-bottom: 24px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* Auto-refresh toggle */
+        .toggle-row { display: flex; align-items: center; gap: 10px; }
+        .toggle-label { font-size: 13px; color: var(--sub); }
+        .toggle {
+            width: 40px; height: 22px; border-radius: 11px;
+            background: var(--bg3); border: 1px solid var(--border2);
+            position: relative; cursor: pointer; transition: background .2s;
+        }
+        .toggle.on { background: var(--indigo); border-color: var(--indigo); }
+        .toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px; border-radius: 50%; background: #fff;
+            transition: left .2s;
+        }
+        .toggle.on::after { left: 20px; }
+
+        /* Timeline log entry */
+        .log-entry { display: flex; gap: 8px; }
+    </style>
+</head>
+<body>
+<div class="bg-canvas"><div class="bg-grid"></div></div>
+<div th:replace="admin/adminNav :: adminNav"></div>
+
+<div class="page-wrap content">
+<main class="main">
+
+    <div class="breadcrumb"><a th:href="@{/api/admin/dashboard}">Dashboard</a> › Scraping Control</div>
+
+    <div class="page-header">
+        <div class="header-left">
+            <h1>🤖 Scraping Control Centre</h1>
+            <p>Manage and monitor the GeM portal data ingestion pipeline</p>
+        </div>
+        <div class="header-actions">
+            <div class="toggle-row">
+                <div class="toggle" id="autoRefreshToggle" onclick="toggleAutoRefresh()"></div>
+                <span class="toggle-label">Auto Refresh</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="manualRefresh()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Refresh Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Engine Hero -->
+    <div class="engine-hero">
+        <div class="engine-visual" id="engineVisual">
+            <div class="engine-icon">⚙️</div>
+        </div>
+        <div class="engine-info">
+            <div class="engine-title" id="engineTitle">Scraping Engine</div>
+            <div class="engine-sub" id="engineSub">Status: Ready to scrape GeM portal data</div>
+            <div class="engine-actions">
+                <button class="btn btn-primary" id="btnStart" onclick="startScraping()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    Start Full Scrape
+                    <div class="btn-spinner" id="startSpinner"></div>
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="testMinistries()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 3L5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"/></svg>
+                    Test Ministries
+                </button>
+                <button class="btn btn-success btn-sm" onclick="loadStats()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    View Stats
+                </button>
+            </div>
+        </div>
+        <div class="engine-meta">
+            <div class="engine-meta-item">
+                <div class="engine-meta-val indigo" id="em-ministries">—</div>
+                <div class="engine-meta-label">Ministries</div>
+            </div>
+            <div class="engine-meta-item">
+                <div class="engine-meta-val green" id="em-orgs">—</div>
+                <div class="engine-meta-label">Orgs</div>
+            </div>
+            <div class="engine-meta-item">
+                <div class="engine-meta-val orange" id="em-depts">—</div>
+                <div class="engine-meta-label">Depts</div>
+            </div>
+            <div class="engine-meta-item">
+                <div class="engine-meta-val purple" id="em-states">—</div>
+                <div class="engine-meta-label">States</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress + Log -->
+    <div class="two-col">
+        <!-- Progress -->
+        <div class="section-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style="color:var(--indigo)">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
+                    </svg>
+                    Live Progress
+                </div>
+                <span class="status-badge idle" id="progressStatusBadge">
+                    <span class="dot"></span> Idle
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="progress-block">
+                    <div class="progress-meta">
+                        <span class="progress-label" id="progressLabel">Ready</span>
+                        <span class="progress-pct" id="progressPct">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                    </div>
+                    <div class="progress-task" id="progressTask">Waiting for scraping to start…</div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                    <div style="background:var(--bg3);border-radius:10px;padding:14px 16px;text-align:center">
+                        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Processed</div>
+                        <div style="font-size:20px;font-weight:800;color:var(--text)" id="proc-count">—</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:10px;padding:14px 16px;text-align:center">
+                        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Total</div>
+                        <div style="font-size:20px;font-weight:800;color:var(--text)" id="proc-total">—</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)">
+                    Last updated: <span id="lastUpdated">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style="color:var(--purple)">
+                        <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
+                    </svg>
+                    Activity Log
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="clearLog()">Clear</button>
+            </div>
+            <div class="card-body" style="padding-bottom:20px">
+                <div class="log-console" id="logConsole">
+                    <div><span class="log-time">[--:--:--]</span> <span class="log-info">System ready. Waiting for commands…</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats breakdown -->
+    <div class="section-card" style="margin-bottom:22px">
+        <div class="card-header">
+            <div class="card-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style="color:var(--success)">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                </svg>
+                Data Breakdown
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadStats()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid-4">
+                <div class="stat-block indigo">
+                    <div class="stat-block-icon">🏛️</div>
+                    <div class="stat-block-val" id="sb-ministries">—</div>
+                    <div class="stat-block-label">Ministries</div>
+                    <div class="stat-block-sub">Central government bodies</div>
+                </div>
+                <div class="stat-block green">
+                    <div class="stat-block-icon">🗺️</div>
+                    <div class="stat-block-val" id="sb-states">—</div>
+                    <div class="stat-block-label">States</div>
+                    <div class="stat-block-sub">State entities on GeM</div>
+                </div>
+                <div class="stat-block orange">
+                    <div class="stat-block-icon">🏢</div>
+                    <div class="stat-block-val" id="sb-orgs">—</div>
+                    <div class="stat-block-label">Organizations</div>
+                    <div class="stat-block-sub">Buyer organizations</div>
+                </div>
+                <div class="stat-block purple">
+                    <div class="stat-block-icon">📁</div>
+                    <div class="stat-block-val" id="sb-depts">—</div>
+                    <div class="stat-block-label">Departments</div>
+                    <div class="stat-block-sub">Sub-departments indexed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+        <div class="danger-zone-header">
+            <div class="danger-zone-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            </div>
+            <div>
+                <h2>⚠️ Danger Zone</h2>
+                <p style="font-size:13px;color:var(--sub);margin-top:3px">These actions are irreversible. Proceed with extreme caution.</p>
+            </div>
+        </div>
+        <div class="danger-grid">
+            <div class="danger-item">
+                <h4>🗑️ Clear All Scraped Data</h4>
+                <p>Permanently deletes all Ministries, States, Organizations, and Departments from the database. A full rescrape will be required.</p>
+                <button class="btn btn-danger btn-sm" onclick="openClearModal('all')">Clear All Data</button>
+            </div>
+            <div class="danger-item">
+                <h4>🔄 Reset & Re-scrape</h4>
+                <p>Clears all data and immediately triggers a fresh full scrape from the GeM portal. This will take several minutes.</p>
+                <button class="btn btn-danger btn-sm" onclick="openClearModal('rescrape')">Reset & Re-scrape</button>
+            </div>
+        </div>
+    </div>
+
+</main>
+</div>
+
+<!-- Clear Confirm Modal -->
+<div class="modal-overlay" id="clearModal">
+    <div class="modal">
+        <div class="modal-icon">⚠️</div>
+        <h3 id="modalTitle">Clear All Scraped Data?</h3>
+        <p id="modalBody">This will permanently delete all Ministries, States, Organizations, and Departments stored in the database.</p>
+        <p class="modal-warning">⚠️ This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeClearModal()">Cancel</button>
+            <button class="btn btn-danger" id="modalConfirmBtn" onclick="confirmClear()">Delete Everything</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    let autoRefreshInterval = null;
+    let autoRefreshOn = false;
+    let pendingClearAction = null;
+    const logConsole = document.getElementById('logConsole');
+
+    // ── Toast ─────────────────────────────────────────────────────
+    function toast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = type; t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4500);
+    }
+
+    // ── Log ───────────────────────────────────────────────────────
+    function log(msg, type = 'info') {
+        const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="log-time">[${now}]</span> <span class="log-${type}">${msg}</span>`;
+        logConsole.appendChild(div);
+        logConsole.scrollTop = logConsole.scrollHeight;
+    }
+
+    function clearLog() {
+        logConsole.innerHTML = `<div><span class="log-time">[--:--:--]</span> <span class="log-info">Log cleared.</span></div>`;
+    }
+
+    // ── Auto refresh ──────────────────────────────────────────────
+    function toggleAutoRefresh() {
+        const toggle = document.getElementById('autoRefreshToggle');
+        autoRefreshOn = !autoRefreshOn;
+        toggle.classList.toggle('on', autoRefreshOn);
+        if (autoRefreshOn) {
+            autoRefreshInterval = setInterval(loadProgress, 5000);
+            log('Auto-refresh enabled (5s interval)', 'ok');
+            toast('Auto-refresh ON', 'info');
+        } else {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            log('Auto-refresh disabled', 'warn');
+            toast('Auto-refresh OFF', 'warning');
+        }
+    }
+
+    function manualRefresh() { loadProgress(); loadStats(); log('Manual refresh triggered', 'info'); }
+
+    // ── Start scraping ────────────────────────────────────────────
+    async function startScraping() {
+        const btn = document.getElementById('btnStart');
+        const spinner = document.getElementById('startSpinner');
+        btn.disabled = true; spinner.style.display = 'block';
+        log('Sending start command to scraping engine…', 'info');
+
+        try {
+            const res = await fetch('/api/advance-search/scraping/start', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                toast('Scraping started!', 'success');
+                log('✅ Scraping engine started successfully', 'ok');
+                setEngineRunning();
+                if (!autoRefreshOn) { autoRefreshInterval = setInterval(loadProgress, 4000); }
+            } else {
+                toast('Failed: ' + (data.message || 'Unknown'), 'error');
+                log('❌ Start failed: ' + (data.message || 'Unknown'), 'err');
+            }
+        } catch (e) {
+            toast('Network error: ' + e.message, 'error');
+            log('❌ Network error: ' + e.message, 'err');
+        } finally {
+            btn.disabled = false; spinner.style.display = 'none';
+        }
+    }
+
+    async function testMinistries() {
+        log('Testing ministry scraping endpoint…', 'info');
+        try {
+            const res = await fetch('/api/advance-search/scraping/test/scrape-ministries', { method: 'POST' });
+            const data = await res.json();
+            toast(data.message || 'Test triggered', 'info');
+            log('🧪 Ministry test: ' + (data.message || 'OK'), 'ok');
+        } catch (e) {
+            toast('Test failed', 'error');
+            log('❌ Ministry test error: ' + e.message, 'err');
+        }
+    }
+
+    // ── Load progress ─────────────────────────────────────────────
+    async function loadProgress() {
+        try {
+            const res = await fetch('/api/advance-search/scraping/progress');
+            const data = await res.json();
+            const pct = data.progressPercentage || data.progress || 0;
+            const status = (data.status || 'IDLE').toUpperCase();
+
+            document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
+            document.getElementById('progressPct').textContent = Math.round(pct) + '%';
+            document.getElementById('progressLabel').textContent = data.currentStep || data.step || 'Progress';
+            document.getElementById('progressTask').textContent = data.currentTask || data.task || 'Waiting…';
+            document.getElementById('proc-count').textContent = data.processedCount ?? data.processed ?? '—';
+            document.getElementById('proc-total').textContent = data.totalCount ?? data.total ?? '—';
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-IN');
+
+            // Update engine meta
+            document.getElementById('em-ministries').textContent = data.ministriesCount ?? data.ministries ?? '—';
+            document.getElementById('em-orgs').textContent = data.organizationsCount ?? data.organizations ?? '—';
+            document.getElementById('em-depts').textContent = data.departmentsCount ?? data.departments ?? '—';
+            document.getElementById('em-states').textContent = data.statesCount ?? data.states ?? '—';
+
+            const badge = document.getElementById('progressStatusBadge');
+            if (status === 'RUNNING' || status === 'IN_PROGRESS') {
+                badge.className = 'status-badge running';
+                badge.innerHTML = '<span class="dot pulse"></span> Running';
+                setEngineRunning();
+            } else if (status === 'COMPLETED') {
+                badge.className = 'status-badge done';
+                badge.innerHTML = '<span class="dot"></span> Completed';
+                setEngineDone();
+                if (!autoRefreshOn) clearInterval(autoRefreshInterval);
+            } else {
+                badge.className = 'status-badge idle';
+                badge.innerHTML = '<span class="dot"></span> Idle';
+                setEngineIdle();
+            }
+
+        } catch (e) {
+            log('❌ Progress fetch error: ' + e.message, 'err');
+        }
+    }
+
+    // ── Load stats ────────────────────────────────────────────────
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/advance-search/scraping/stats');
+            const data = await res.json();
+
+            document.getElementById('sb-ministries').textContent = data.ministries ?? data.ministriesCount ?? 0;
+            document.getElementById('sb-states').textContent     = data.states ?? data.statesCount ?? 0;
+            document.getElementById('sb-orgs').textContent       = data.organizations ?? data.organizationsCount ?? 0;
+            document.getElementById('sb-depts').textContent      = data.departments ?? data.departmentsCount ?? 0;
+
+            log('📊 Stats refreshed', 'ok');
+        } catch (e) {
+            log('❌ Stats error: ' + e.message, 'err');
+        }
+    }
+
+    // ── Engine visual helpers ─────────────────────────────────────
+    function setEngineRunning() {
+        const v = document.getElementById('engineVisual');
+        v.className = 'engine-visual running';
+        v.querySelector('.engine-icon').textContent = '⚙️';
+        document.getElementById('engineTitle').textContent = 'Scraping Engine — Running';
+        document.getElementById('engineSub').textContent = 'GeM portal scraping in progress…';
+    }
+    function setEngineDone() {
+        const v = document.getElementById('engineVisual');
+        v.className = 'engine-visual done';
+        v.querySelector('.engine-icon').textContent = '✅';
+        document.getElementById('engineTitle').textContent = 'Scraping Engine — Completed';
+        document.getElementById('engineSub').textContent = 'Last scrape completed successfully';
+        log('✅ Scraping completed!', 'ok');
+        toast('Scraping completed!', 'success');
+    }
+    function setEngineIdle() {
+        const v = document.getElementById('engineVisual');
+        v.className = 'engine-visual';
+        v.querySelector('.engine-icon').textContent = '⚙️';
+        document.getElementById('engineTitle').textContent = 'Scraping Engine';
+        document.getElementById('engineSub').textContent = 'Ready to scrape GeM portal data';
+    }
+
+    // ── Clear modal ───────────────────────────────────────────────
+    function openClearModal(action) {
+        pendingClearAction = action;
+        if (action === 'rescrape') {
+            document.getElementById('modalTitle').textContent = 'Reset & Re-scrape?';
+            document.getElementById('modalBody').textContent = 'This will delete all existing data and immediately start a fresh full scrape. This process will take several minutes.';
+            document.getElementById('modalConfirmBtn').textContent = 'Reset & Re-scrape';
+        } else {
+            document.getElementById('modalTitle').textContent = 'Clear All Scraped Data?';
+            document.getElementById('modalBody').textContent = 'This permanently deletes all Ministries, States, Organizations, and Departments from the database. A full re-scrape will be required afterwards.';
+            document.getElementById('modalConfirmBtn').textContent = 'Delete Everything';
+        }
+        document.getElementById('clearModal').classList.add('open');
+    }
+
+    function closeClearModal() {
+        document.getElementById('clearModal').classList.remove('open');
+        pendingClearAction = null;
+    }
+
+    async function confirmClear() {
+        closeClearModal();
+        log('⚠️ Clearing all scraped data…', 'warn');
+        try {
+            const res = await fetch('/api/advance-search/scraping/clear', { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                log('✅ All scraped data cleared.', 'ok');
+                toast('All data cleared successfully.', 'success');
+                if (pendingClearAction === 'rescrape' || document.getElementById('modalTitle').textContent.includes('Reset')) {
+                    setTimeout(startScraping, 800);
+                }
+                loadProgress(); loadStats();
+            } else {
+                log('❌ Clear failed: ' + (data.message || 'Error'), 'err');
+                toast('Failed: ' + data.message, 'error');
+            }
+        } catch (e) {
+            log('❌ Clear error: ' + e.message, 'err');
+            toast('Error: ' + e.message, 'error');
+        }
+    }
+
+    // Close modal on overlay click
+    document.getElementById('clearModal').addEventListener('click', e => {
+        if (e.target === document.getElementById('clearModal')) closeClearModal();
+    });
+
+    // ── Init ──────────────────────────────────────────────────────
+    loadProgress();
+    loadStats();
+</script>
+</body>
+</html>
