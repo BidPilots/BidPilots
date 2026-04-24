@@ -3,7 +3,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "java -jar app.jar",
+    "startCommand": "java -Djava.awt.headless=true -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar app.jar",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
