@@ -22,3 +22,4 @@ HELP.zip
 
 # Application secrets (CRITICAL - never commit)
 src/main/resources/application-local.properties
+src/main/resources/application-railway.properties
