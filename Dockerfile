@@ -1,12 +1,28 @@
-# Step 1: Use Maven to build the application
-FROM maven:3.8.5-openjdk-17 AS build
+# Build stage
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY . .
-RUN mvn clean package -DskipTests
 
-# Step 2: Use a lightweight Java runtime to run the app
-FROM openjdk:17.0.1-jdk-slim
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copy source and build
+COPY src ./src
+RUN mvn clean package -DskipTests -B
+
+# Run stage
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+
+# Install Chrome for Selenium
+RUN apk add --no-cache chromium chromium-chromedriver
+
+# Copy the JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
+
+# Chrome environment variables
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium-browser
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]
